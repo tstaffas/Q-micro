@@ -1,0 +1,90 @@
+\hypertarget{namespaceopto_m_d_c_1_1registers_1_1mre2__registers}{}\doxysection{opto\+MDC.\+registers.\+mre2\+\_\+registers Namespace Reference}
+\label{namespaceopto_m_d_c_1_1registers_1_1mre2__registers}\index{optoMDC.registers.mre2\_registers@{optoMDC.registers.mre2\_registers}}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_o_f_p_i_d}{OFPID}}
+\item 
+class \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d}{XYPID}}
+\item 
+class \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_misc_features}{MRE2\+Misc\+Features}}
+\item 
+class \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status}{MRE2\+Status}}
+\item 
+class \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_static_input}{MRE2\+Static\+Input}}
+\item 
+class \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_analog}{MRE2\+Analog}}
+\item 
+class \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_signal_generator}{MRE2\+Signal\+Generator}}
+\item 
+class \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_vector_pattern_unit}{MRE2\+Vector\+Pattern\+Unit}}
+\item 
+class \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback}{Optical\+Feedback}}
+\item 
+class \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager}{MRE2\+Temperature\+Manager}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{namespaceopto_m_d_c_1_1registers_1_1mre2__registers_a217751b6def7d110c3af5ec9d321e869}{systems}} ()
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\begin{DoxyVerb}Lookup tables / management of System registers specific to the MR-E-2.
+
+Each System is represented by its own class, with Registers as attributes of that class.
+The registers module can be imported to retrieve information about a given registers.
+Syntax is as follows: registers.SYSTEM_NAME(CHANNEL_NUMBER).REGISTER_NAME
+
+Returns
+-------
+dict
+    A standard lookup will return a Register Record, or dictionary, containing pertinent registers information.
+
+Notes
+-----
+A handful of helper methods are included to manage registers requests. See corresponding info for the following:
+    is_valid_channel(value), is_valid_value(register_dict, value)
+    tools.parsing_tools.encode(command_id, register_id)
+    system_info()
+    system_names()
+    register_names(system_name)
+    tools.systems_registers_tools.get_register(system_name, register_name, channel)
+    parse_error(error_code)
+    help()
+
+Examples
+--------
+
+For example, this imports the registers module, and collects the registers record of USB channel 0, as well as the
+registers record for setting the input channel system of the Signal Flow Manager.
+
+    >>> from optoMDC.mre2 import Registers
+    >>> Registers.StaticInput(0).of
+
+    >>> Registers.StaticInput(0).of
+    {'id': 20737, 'type': <class 'float'>, 'unit': None, 'range': [-1, 1], 'default': 0.0}
+    >>> Registers.Manager(0).input
+    {'id': 16384, 'type': <class 'int'>, 'unit': 'SystemID', 'range': None, 'default': None}
+    >>> from optoMDC.tools.systems_registers_tools import is_valid_value
+    >>> is_valid_value(Registers.StaticInput(0).xy, 0.8)
+    True
+
+Additional Notes
+----------------
+For more info on a given registers, see the help text in the corresponding System class.
+This will display ID, Data Type, Units, Range, Default Value, and Comments.
+    >>> Registers.SignalGenerator.help()
+
+For a complete list of registers for a given system, call one of the helper methods from registers module itself.
+    >>> Registers.get_registers(system_name='StaticInput', channel=1)\end{DoxyVerb}
+ 
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{namespaceopto_m_d_c_1_1registers_1_1mre2__registers_a217751b6def7d110c3af5ec9d321e869}\label{namespaceopto_m_d_c_1_1registers_1_1mre2__registers_a217751b6def7d110c3af5ec9d321e869}} 
+\index{optoMDC.registers.mre2\_registers@{optoMDC.registers.mre2\_registers}!systems@{systems}}
+\index{systems@{systems}!optoMDC.registers.mre2\_registers@{optoMDC.registers.mre2\_registers}}
+\doxysubsubsection{\texorpdfstring{systems()}{systems()}}
+{\footnotesize\ttfamily def opto\+MDC.\+registers.\+mre2\+\_\+registers.\+systems (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+

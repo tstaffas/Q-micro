@@ -1,0 +1,92 @@
+\hypertarget{index_intro_sec}{}\doxysection{Introduction to opto\+MDC, a python SDK for controlling the MR-\/\+E-\/2}\label{index_intro_sec}
+The \mbox{\hyperlink{namespaceopto_m_d_c}{opto\+MDC}} SDK is organized in the following way\+: \begin{DoxyVerb}     Board.Mirror.Channel.System.RegisterCommand(parameters)
+\end{DoxyVerb}
+ 
+
+\mbox{\hyperlink{classopto_m_d_c_1_1mre2_1_1_m_r_e2_board}{Board}} \+: Low/mid level object for operating the firmware such as vector patterns, simple/pro commands, etc ~\newline
+ \mbox{\hyperlink{classopto_m_d_c_1_1mre2_1_1_m_r_e2_mirror}{Mirror}} \+: Handles Scuti Mirror Board Operations such as Get\+Proxy\+Temperature, Get\+Connected\+Status, etc ~\newline
+ \mbox{\hyperlink{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel}{Channel}} \+: A given channel, which can set input types, gain, etc. ~\newline
+ \mbox{\hyperlink{}{System}} \+: Each channel has its own stages. From here you can call methods that get/set individual registers. ~\newline
+ \mbox{\hyperlink{}{registers}} \+: Each system has several registers, which are dictionaries with elements regarding valid units/range. ~\newline
+\hypertarget{index_quick_start}{}\doxysubsection{To begin\+:}\label{index_quick_start}
+If necessary, flash the FW using\+: \mbox{\hyperlink{}{STM32 Cube Programmer}} This build of \mbox{\hyperlink{namespaceopto_m_d_c}{opto\+MDC}} is based on FW Version\+: 13816100-\/00-\/\+A\+\_\+\+MRE2\+\_\+2.\+2.\+740040
+
+Import necessary module and initialize a board \begin{DoxyVerb}import optoMDC
+mre2 = optoMDC.connect()
+\end{DoxyVerb}
+ Define the system you want to interact with (board.\+mirror.\+channel.\+system) \begin{DoxyVerb}sig_gen = mre2.Mirror.Channel_0.SignalGenerator
+\end{DoxyVerb}
+ Start setting values \begin{DoxyVerb}sig_gen.SetAmplitude(0.1)
+\end{DoxyVerb}
+ \hypertarget{index_channel_setting_sin}{}\doxysubsection{Setting Up A Channel (\+Quick-\/\+Start Guide -\/ Sinusoid)\+:}\label{index_channel_setting_sin}
+Each Channel has a Manager for handling signal flow. This happens mostly behind-\/the-\/scenes, However, it is important to keep in mind the following procedure.\hypertarget{index_signal_flow}{}\doxysubsubsection{(1) Set Input Stage $>$ (2) Set Input Conditioning $>$ (3) Set Control Mode $>$ (4) Set Output Limiting}\label{index_signal_flow}
+For example, to output a sinusoid on Channel\+\_\+0 in open-\/loop (current) mode... \begin{DoxyVerb}import optoMDC
+mre2 = optoMDC.connect()
+
+ch_0 = mre2.Mirror.Channel_0
+
+ch_0.SignalGenerator.SetAsInput()                    # (1) here we tell the Manager that the sig gen is the desired input
+ch_0.InputConditioning.SetGain(1.0)                  # (2) here we tell the Manager some input conditioning parameters
+ch_0.SetControlMode(optoMDC.Units.CURRENT)           # (3) here we tell the Manager that our input will be in units of current
+ch_0.LinearOutput.SetCurrentLimit(0.7)               # (4) here we tell the Manager to limit the current to 700mA (default)
+
+ch_0.Manager.CheckSignalFlow()                       # This is a useful method to make sure the signal flow is configured correctly.
+\end{DoxyVerb}
+ The channel is configured. The output of the Signal Generator will now proceed through the signal flow mentioned above.
+
+Therefore, next we will configure the output of the Signal Generator. \begin{DoxyVerb}sg_0 = mre2.Mirror.Channel_0.SignalGenerator
+
+sg_0.SetUnit(optoMDC.Units.CURRENT)                 # here we set the sig gen to output in units of current (This must match the control mode!)
+sg_0.SetShape(optoMDC.Waveforms.SINUSOIDAL)         # here we set the sig gen output waveform type
+sg_0.SetFrequency(10.0)                             # here we set the frequency in Hz
+sg_0.SetAmplitude(0.100)                            # here we set the amplitude in Amps
+sg_0.Run()                                          # done.
+\end{DoxyVerb}
+ \hypertarget{index_channel_setting_dc}{}\doxysubsection{Setting Up A Channel (\+Quick-\/\+Start Guide -\/ DC output)\+:}\label{index_channel_setting_dc}
+Each Channel has a Manager for handling signal flow. This happens mostly behind-\/the-\/scenes, However, it is important to keep in mind the following procedure.\hypertarget{_}{}\doxysubsubsection{}\label{_}
+For example, to output a sinusoid on Channel\+\_\+0 in open-\/loop (current) mode... \begin{DoxyVerb}import optoMDC
+mre2 = optoMDC.connect()
+
+ch_0 = mre2.Mirror.Channel_0
+
+ch_0.StaticInput.SetAsInput()                        # (1) here we tell the Manager that we will use a static input
+ch_0.InputConditioning.SetGain(1.0)                  # (2) here we tell the Manager some input conditioning parameters
+ch_0.SetControlMode(optoMDC.Units.CURRENT)           # (3) here we tell the Manager that our input will be in units of current
+ch_0.LinearOutput.SetCurrentLimit(0.7)               # (4) here we tell the Manager to limit the current to 700mA (default)
+
+ch_0.Manager.CheckSignalFlow()                       # This is a useful method to make sure the signal flow is configured correctly.
+\end{DoxyVerb}
+ The channel is configured. The output of the Static system will now proceed through the signal flow mentioned above.
+
+Therefore, next we will configure the output of the Static System. \begin{DoxyVerb}si_0 = mre2.Mirror.Channel_0.StaticInput
+
+si_0.SetCurrent(0.075)                              # here we set a static output of 75mA. (Control mode above must also be CURRENT!)
+\end{DoxyVerb}
+ There are many other systems to interact with and configure. For more information, see the links below...\hypertarget{index_systems}{}\doxysubsubsection{Check out the link below for an overview of all of the available systems and their methods (such as Optical\+Feedback, Logger, and Vector\+Pattern\+Unit)}\label{index_systems}
+\mbox{\hyperlink{}{General Systems }} \begin{DoxyVerb}mre2.Mirror.Channel_0.VectorPatternUnit.SetExternalTrigger()
+mre2.Mirror.Channel_0.InputConditioning.SetGain(0.7)
+\end{DoxyVerb}
+ \hypertarget{index_utils}{}\doxysubsubsection{Check out the link below for an overview of the Board-\/level utility commands (such as load snapshot)}\label{index_utils}
+\mbox{\hyperlink{}{Utility Commands }} \begin{DoxyVerb}mre2.load_snapshot(2)
+mre2.reset()
+\end{DoxyVerb}
+\hypertarget{index_advanced}{}\doxysubsubsection{Setting Registers Directly}\label{index_advanced}
+Additional operations are available directly through the Board object (get/set multiple, reset, etc)~\newline
+For example, multiple set/get can be done (up to 8 at once).~\newline
+After the following commands, the Signal Generator system will output a sinusoid on channel 0 (You must still configure the Manager!) \begin{DoxyVerb}import optoMDC
+mre2 = optoMDC.connect()
+
+mngr = mre2.Mirror.Channel_0.Manager
+sig_gen = mre2.Mirror.Channel_0.SignalGenerator
+
+systems = [mngr.input,     mngr.control,   sig_gen.shape,                sig_gen.frequency, sig_gen.amplitude, sig_gen.unit,          sig_gen.run]
+values  = [sig_gen.sys_id, sig_gen.sys_id, optoMDC.Waveforms.SINUSOIDAL, 10.0,              0.1,               optoMDC.Units.CURRENT, True       ]
+
+mre2.set_value(systems, values)
+mre2.get_value(systems)
+\end{DoxyVerb}
+ Note\+: You can find which registers a system has by calling {\ttfamily  get\+\_\+register\+\_\+names } \begin{DoxyVerb}>>> sig_gen.get_register_names()
+['unit', 'run', 'shape', 'frequency', 'amplitude', 'offset', 'phase', 'cycles', 'duty_cycle']
+\end{DoxyVerb}
+ \hypertarget{index_more}{}\doxysubsubsection{For More Examples, See The Page Below\+:}\label{index_more}
+\mbox{\hyperlink{examples}{Additional Examples }} 

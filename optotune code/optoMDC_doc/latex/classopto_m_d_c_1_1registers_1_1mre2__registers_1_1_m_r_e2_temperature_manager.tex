@@ -1,0 +1,160 @@
+\hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager}{}\doxysection{opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Temperature\+Manager Class Reference}
+\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager}\index{optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}}
+Inheritance diagram for opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Temperature\+Manager\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a76a994955d2129d600fab05fc78940bc}{\+\_\+\+\_\+init\+\_\+\+\_\+}} (self, board=None)
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_af91eb3d799b75fefc3cf7776fbfd3d6c}{Get\+Scuti\+Temperature}} (self)
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_ae41819eac96cad5b822835bd2590bc47}{Get\+Proxy\+Temperature}} (self)
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_ace13e1eec8a309cade383359060312b7}{Get\+Scuti\+Temperature\+Threshold}} (self)
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a94a4539dad8a0d7b565f84cb618fd16a}{Get\+Proxy\+Temperature\+Threshold}} (self)
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_abd1787325e77520e06f61c38d7614cde}{Set\+Scuti\+Temperature\+Threshold}} (self, value)
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a17fcb6e78c7f26699d055abee276498c}{Set\+Proxy\+Temperature\+Threshold}} (self, value)
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a232a851b8b230a353b09676e878f1d18}{help}} ()
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_aa884d452952c68372cf8c09291dd9911}{sys\+\_\+id}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a4b2e4999dfa41051cec4650265f35223}{scuti\+\_\+temperature}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_ab956d24d328874b9cfac69c3ae0282f8}{proxy\+\_\+temperature}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_aedd5787b1a147fcb09093b0139dbfe9f}{scuti\+\_\+temp\+\_\+threshold}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a2240760c7d3ae6580294ce0c392325f7}{proxy\+\_\+temp\+\_\+threshold}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a30a1b39f470c5d81b2bb92c3d1039074}{name}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\begin{DoxyVerb}Device Functionality - Device Temperature Readout
+System ID: 0x22
+
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+| Register Name      | Id   | Type        | Unit | Range | Default | Comment                                          |
++====================+======+=============+======+=======+=========+==================================================+
+|scuti_temperature   | 0x00 |uint 32-bit  |°C    |       |         |                                                  |
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+|proxy_temperature   | 0x01 |uint 32-bit  |°C    |       |         |                                                  |
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+|scuti_temp_threshold| 0x02 |uint 32-bit  |°C    |       | 65      |                                                  |
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+|proxy_temp_threshold| 0x03 |uint 32-bit  |°C    |       | 65      |                                                  |
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+\end{DoxyVerb}
+ 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a76a994955d2129d600fab05fc78940bc}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a76a994955d2129d600fab05fc78940bc}} 
+\index{optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}!\_\_init\_\_@{\_\_init\_\_}}
+\index{\_\_init\_\_@{\_\_init\_\_}!optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}}
+\doxysubsubsection{\texorpdfstring{\_\_init\_\_()}{\_\_init\_\_()}}
+{\footnotesize\ttfamily def opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Temperature\+Manager.\+\_\+\+\_\+init\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{board = {\ttfamily None} }\end{DoxyParamCaption})}
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_ae41819eac96cad5b822835bd2590bc47}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_ae41819eac96cad5b822835bd2590bc47}} 
+\index{optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}!GetProxyTemperature@{GetProxyTemperature}}
+\index{GetProxyTemperature@{GetProxyTemperature}!optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}}
+\doxysubsubsection{\texorpdfstring{GetProxyTemperature()}{GetProxyTemperature()}}
+{\footnotesize\ttfamily def opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Temperature\+Manager.\+Get\+Proxy\+Temperature (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a94a4539dad8a0d7b565f84cb618fd16a}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a94a4539dad8a0d7b565f84cb618fd16a}} 
+\index{optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}!GetProxyTemperatureThreshold@{GetProxyTemperatureThreshold}}
+\index{GetProxyTemperatureThreshold@{GetProxyTemperatureThreshold}!optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}}
+\doxysubsubsection{\texorpdfstring{GetProxyTemperatureThreshold()}{GetProxyTemperatureThreshold()}}
+{\footnotesize\ttfamily def opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Temperature\+Manager.\+Get\+Proxy\+Temperature\+Threshold (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_af91eb3d799b75fefc3cf7776fbfd3d6c}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_af91eb3d799b75fefc3cf7776fbfd3d6c}} 
+\index{optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}!GetScutiTemperature@{GetScutiTemperature}}
+\index{GetScutiTemperature@{GetScutiTemperature}!optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}}
+\doxysubsubsection{\texorpdfstring{GetScutiTemperature()}{GetScutiTemperature()}}
+{\footnotesize\ttfamily def opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Temperature\+Manager.\+Get\+Scuti\+Temperature (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_ace13e1eec8a309cade383359060312b7}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_ace13e1eec8a309cade383359060312b7}} 
+\index{optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}!GetScutiTemperatureThreshold@{GetScutiTemperatureThreshold}}
+\index{GetScutiTemperatureThreshold@{GetScutiTemperatureThreshold}!optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}}
+\doxysubsubsection{\texorpdfstring{GetScutiTemperatureThreshold()}{GetScutiTemperatureThreshold()}}
+{\footnotesize\ttfamily def opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Temperature\+Manager.\+Get\+Scuti\+Temperature\+Threshold (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a232a851b8b230a353b09676e878f1d18}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a232a851b8b230a353b09676e878f1d18}} 
+\index{optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}!help@{help}}
+\index{help@{help}!optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}}
+\doxysubsubsection{\texorpdfstring{help()}{help()}}
+{\footnotesize\ttfamily def opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Temperature\+Manager.\+help (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a17fcb6e78c7f26699d055abee276498c}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a17fcb6e78c7f26699d055abee276498c}} 
+\index{optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}!SetProxyTemperatureThreshold@{SetProxyTemperatureThreshold}}
+\index{SetProxyTemperatureThreshold@{SetProxyTemperatureThreshold}!optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}}
+\doxysubsubsection{\texorpdfstring{SetProxyTemperatureThreshold()}{SetProxyTemperatureThreshold()}}
+{\footnotesize\ttfamily def opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Temperature\+Manager.\+Set\+Proxy\+Temperature\+Threshold (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{value }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_abd1787325e77520e06f61c38d7614cde}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_abd1787325e77520e06f61c38d7614cde}} 
+\index{optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}!SetScutiTemperatureThreshold@{SetScutiTemperatureThreshold}}
+\index{SetScutiTemperatureThreshold@{SetScutiTemperatureThreshold}!optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}}
+\doxysubsubsection{\texorpdfstring{SetScutiTemperatureThreshold()}{SetScutiTemperatureThreshold()}}
+{\footnotesize\ttfamily def opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Temperature\+Manager.\+Set\+Scuti\+Temperature\+Threshold (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{value }\end{DoxyParamCaption})}
+
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a30a1b39f470c5d81b2bb92c3d1039074}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a30a1b39f470c5d81b2bb92c3d1039074}} 
+\index{optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}!name@{name}}
+\index{name@{name}!optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}}
+\doxysubsubsection{\texorpdfstring{name}{name}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Temperature\+Manager.\+name}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a2240760c7d3ae6580294ce0c392325f7}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a2240760c7d3ae6580294ce0c392325f7}} 
+\index{optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}!proxy\_temp\_threshold@{proxy\_temp\_threshold}}
+\index{proxy\_temp\_threshold@{proxy\_temp\_threshold}!optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}}
+\doxysubsubsection{\texorpdfstring{proxy\_temp\_threshold}{proxy\_temp\_threshold}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Temperature\+Manager.\+proxy\+\_\+temp\+\_\+threshold}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_ab956d24d328874b9cfac69c3ae0282f8}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_ab956d24d328874b9cfac69c3ae0282f8}} 
+\index{optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}!proxy\_temperature@{proxy\_temperature}}
+\index{proxy\_temperature@{proxy\_temperature}!optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}}
+\doxysubsubsection{\texorpdfstring{proxy\_temperature}{proxy\_temperature}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Temperature\+Manager.\+proxy\+\_\+temperature}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_aedd5787b1a147fcb09093b0139dbfe9f}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_aedd5787b1a147fcb09093b0139dbfe9f}} 
+\index{optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}!scuti\_temp\_threshold@{scuti\_temp\_threshold}}
+\index{scuti\_temp\_threshold@{scuti\_temp\_threshold}!optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}}
+\doxysubsubsection{\texorpdfstring{scuti\_temp\_threshold}{scuti\_temp\_threshold}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Temperature\+Manager.\+scuti\+\_\+temp\+\_\+threshold}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a4b2e4999dfa41051cec4650265f35223}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_a4b2e4999dfa41051cec4650265f35223}} 
+\index{optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}!scuti\_temperature@{scuti\_temperature}}
+\index{scuti\_temperature@{scuti\_temperature}!optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}}
+\doxysubsubsection{\texorpdfstring{scuti\_temperature}{scuti\_temperature}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Temperature\+Manager.\+scuti\+\_\+temperature}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_aa884d452952c68372cf8c09291dd9911}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_temperature_manager_aa884d452952c68372cf8c09291dd9911}} 
+\index{optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}!sys\_id@{sys\_id}}
+\index{sys\_id@{sys\_id}!optoMDC.registers.mre2\_registers.MRE2TemperatureManager@{optoMDC.registers.mre2\_registers.MRE2TemperatureManager}}
+\doxysubsubsection{\texorpdfstring{sys\_id}{sys\_id}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Temperature\+Manager.\+sys\+\_\+id}
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+C\+:/\+Users/filip.\+stary/\+Documents/138-\/882-\/00\+\_\+opto\+MDC/src/main/python/opto\+MDC/registers/\mbox{\hyperlink{mre2__registers_8py}{mre2\+\_\+registers.\+py}}\end{DoxyCompactItemize}

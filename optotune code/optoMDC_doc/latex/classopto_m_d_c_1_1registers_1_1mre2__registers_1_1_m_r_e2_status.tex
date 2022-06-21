@@ -1,0 +1,148 @@
+\hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status}{}\doxysection{opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Status Class Reference}
+\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status}\index{optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}}
+Inheritance diagram for opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Status\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a4b549b9d7f201fb31e855a78d57cdbfb}{\+\_\+\+\_\+init\+\_\+\+\_\+}} (self, board=None)
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a88c0775fd7d744e0d91e623744388c55}{Get\+Proxy\+FPGAVersion}} (self)
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a8ee1ee3e4dfb3aeebddddf725dde7f62}{Get\+CPUFPGAVersion}} (self)
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_af088b0927b59b108dba137f7c95ccd75}{parse\+\_\+error\+\_\+flags}} (self, int error\+\_\+flag\+\_\+data)
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a5712b14d3e61d6ffa5bf70c49ddc05b1}{help}} ()
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a984fd76bdae0871a901ea7d7f3234894}{proxy\+\_\+fpga\+\_\+version}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_aa25329f02a28d370ad65f9489108855c}{cpu\+\_\+fpga\+\_\+version}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a03f608311bf0a273723333703bd1a17d}{name}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\begin{DoxyVerb}Device Functionality - Firmware Status
+System ID: 0x10
+
++---------------------+------+-------------+---------+---------------------------------------+
+| Register Name       | Id   | Type        | Default | Comment                               |
++=====================+======+=============+=========+=======================================+
+| firmware_id         | 0x00 | float 32-bit|         |                                       |
++---------------------+------+-------------+---------+---------------------------------------+
+| firmware_branch     | 0x01 | float 32-bit|         |                                       |
++---------------------+------+-------------+---------+---------------------------------------+
+| fw_type             | 0x02 | float 32-bit|         |                                       |
++---------------------+------+-------------+---------+---------------------------------------+
+| fw_version_major    | 0x03 | float 32-bit|         |                                       |
++---------------------+------+-------------+---------+---------------------------------------+
+| fw_version_minor    | 0x04 | float 32-bit|         |                                       |
++---------------------+------+-------------+---------+---------------------------------------+
+| fw_version_build    | 0x05 | float 32-bit|         |                                       |
++---------------------+------+-------------+---------+---------------------------------------+
+| fw_version_revision | 0x06 | float 32-bit|         |                                       |
++---------------------+------+-------------+---------+---------------------------------------+
+| error_flag_register | 0x07 | float 32-bit| 0       | See: Status Register Values Below     |
++---------------------+------+-------------+---------+---------------------------------------+
+| proxy_fpga_version  | 0x08 | float 32-bit|         |                                       |
++---------------------+------+-------------+---------+---------------------------------------+
+| cpu_fpga_version    | 0x09 | float 32-bit|         |                                       |
++---------------------+------+-------------+---------+---------------------------------------+
+
+Status Register Values:
+
+====== =================================================================
+Bit#   Message
+====== =================================================================
+0      Proxy not connected
+1      Proxy temperature threshold is reached. See TemperatureManager
+2      Mirror temperature threshold is reached See TemperatureManager
+3      Mirror EEPROM not valid
+4      Mirror not stable. See stability criterion in OpticalFeedback
+5      Linear output limit is reached. See LinearOutput
+6      Linear output average limit is reached. See LinearOutput
+7      XY input is trimmed. See InputConditioning
+8      Proxy was disconnected
+9      Proxy temperature threshold was reached
+10     Mirror temperature threshold was reached
+11     Linear output limit was reached
+12     Linear output average limit was reached
+13     XY input was trimmed
+14..31 Reserved
+====== =================================================================
+  Write:
+  Writing to this register resets all history error flags 8, 9, 10, 11, 12, 13\end{DoxyVerb}
+ 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a4b549b9d7f201fb31e855a78d57cdbfb}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a4b549b9d7f201fb31e855a78d57cdbfb}} 
+\index{optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}!\_\_init\_\_@{\_\_init\_\_}}
+\index{\_\_init\_\_@{\_\_init\_\_}!optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}}
+\doxysubsubsection{\texorpdfstring{\_\_init\_\_()}{\_\_init\_\_()}}
+{\footnotesize\ttfamily def opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Status.\+\_\+\+\_\+init\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{board = {\ttfamily None} }\end{DoxyParamCaption})}
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a8ee1ee3e4dfb3aeebddddf725dde7f62}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a8ee1ee3e4dfb3aeebddddf725dde7f62}} 
+\index{optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}!GetCPUFPGAVersion@{GetCPUFPGAVersion}}
+\index{GetCPUFPGAVersion@{GetCPUFPGAVersion}!optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}}
+\doxysubsubsection{\texorpdfstring{GetCPUFPGAVersion()}{GetCPUFPGAVersion()}}
+{\footnotesize\ttfamily def opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Status.\+Get\+CPUFPGAVersion (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a88c0775fd7d744e0d91e623744388c55}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a88c0775fd7d744e0d91e623744388c55}} 
+\index{optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}!GetProxyFPGAVersion@{GetProxyFPGAVersion}}
+\index{GetProxyFPGAVersion@{GetProxyFPGAVersion}!optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}}
+\doxysubsubsection{\texorpdfstring{GetProxyFPGAVersion()}{GetProxyFPGAVersion()}}
+{\footnotesize\ttfamily def opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Status.\+Get\+Proxy\+FPGAVersion (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a5712b14d3e61d6ffa5bf70c49ddc05b1}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a5712b14d3e61d6ffa5bf70c49ddc05b1}} 
+\index{optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}!help@{help}}
+\index{help@{help}!optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}}
+\doxysubsubsection{\texorpdfstring{help()}{help()}}
+{\footnotesize\ttfamily def opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Status.\+help (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_af088b0927b59b108dba137f7c95ccd75}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_af088b0927b59b108dba137f7c95ccd75}} 
+\index{optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}!parse\_error\_flags@{parse\_error\_flags}}
+\index{parse\_error\_flags@{parse\_error\_flags}!optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}}
+\doxysubsubsection{\texorpdfstring{parse\_error\_flags()}{parse\_error\_flags()}}
+{\footnotesize\ttfamily def opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Status.\+parse\+\_\+error\+\_\+flags (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{int}]{error\+\_\+flag\+\_\+data }\end{DoxyParamCaption})}
+
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_aa25329f02a28d370ad65f9489108855c}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_aa25329f02a28d370ad65f9489108855c}} 
+\index{optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}!cpu\_fpga\_version@{cpu\_fpga\_version}}
+\index{cpu\_fpga\_version@{cpu\_fpga\_version}!optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}}
+\doxysubsubsection{\texorpdfstring{cpu\_fpga\_version}{cpu\_fpga\_version}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Status.\+cpu\+\_\+fpga\+\_\+version}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a03f608311bf0a273723333703bd1a17d}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a03f608311bf0a273723333703bd1a17d}} 
+\index{optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}!name@{name}}
+\index{name@{name}!optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}}
+\doxysubsubsection{\texorpdfstring{name}{name}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Status.\+name}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a984fd76bdae0871a901ea7d7f3234894}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_m_r_e2_status_a984fd76bdae0871a901ea7d7f3234894}} 
+\index{optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}!proxy\_fpga\_version@{proxy\_fpga\_version}}
+\index{proxy\_fpga\_version@{proxy\_fpga\_version}!optoMDC.registers.mre2\_registers.MRE2Status@{optoMDC.registers.mre2\_registers.MRE2Status}}
+\doxysubsubsection{\texorpdfstring{proxy\_fpga\_version}{proxy\_fpga\_version}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+MRE2\+Status.\+proxy\+\_\+fpga\+\_\+version}
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+C\+:/\+Users/filip.\+stary/\+Documents/138-\/882-\/00\+\_\+opto\+MDC/src/main/python/opto\+MDC/registers/\mbox{\hyperlink{mre2__registers_8py}{mre2\+\_\+registers.\+py}}\end{DoxyCompactItemize}

@@ -1,0 +1,212 @@
+\hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d}{}\doxysection{opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID Class Reference}
+\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d}\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+Inheritance diagram for opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a1e7bc071491d2bb238ade981953b603d}{\+\_\+\+\_\+init\+\_\+\+\_\+}} (self, int channel=0, board=None)
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a683d9f1e4990a71b5385d43b33542449}{help}} ()
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a0d4b823e7e37d49a8c6d9fe60201a2fa}{sys\+\_\+id}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a6d753e001affa89805d215dce5afdc46}{adaptive\+\_\+pid\+\_\+enabled}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_ae7a0291009725dc7154ee92c8be67f8f}{kp}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a0198b19feb50289253c4361099cd3674}{ki}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_ac8132273bd964f3279b5879b374f8173}{kd}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a91b7023411baf4920fe775031481512d}{min\+\_\+output}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_ab99d6baf1a9fcbadeb6db04d157a86f2}{max\+\_\+output}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a482fbb19b83986a4a32f166a455e38d0}{min\+\_\+integral}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a43341f6e2bdfa06d156635e8e334624a}{max\+\_\+integral}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_ae02385701e4daacef0725177069aa191}{ap}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a251d2eb11588023dce28259de333fb0e}{bp}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a1f9db56bb0a32ed6badf4a512bd39a3b}{ai}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a616d5f9a66fd540b3015a7a948965c62}{bi}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a6caac06936921e60e66abf8c09b507a6}{ad}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a6d355169ea5ba0c7fb598d9b30f49b31}{bd}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a247bb6e8315f10db49bf00cfe071dd3f}{name}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\begin{DoxyVerb}Control Mode Channel - XY PID Control (with/without Temperature Compensation)
+System ID: 0xC0 through 0xC7
+
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+| Register Name      | Id   | Type        | Unit | Range | Default | Comment                                          |
++====================+======+=============+======+=======+=========+==================================================+
+|adaptive_pid_enabled| 0x00 |float 32-bit |None  |       |         |                                                  |
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+| kp                 | 0x01 |float 32-bit |None  |       |         |                                                  |
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+| ki                 | 0x02 |float 32-bit |None  |       |         |                                                  |
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+| kd                 | 0x03 |uint 32-bit  |bool  | T/F   | 1       |                                                  |
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+| min_output         | 0x04 |float 32-bit |None  |       |         | If PID output reaches this, it is clamped to this|
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+| max_output         | 0x05 |float 32-bit |None  |       |         | If PID output reaches this, it is clamped to this|
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+| min_integral       | 0x06 |float 32-bit |None  |       |         |                                                  |
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+| max_integral       | 0x07 |float 32-bit |None  |       |         |                                                  |
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+| ap                 | 0x08 |float 32-bit |None  |       |         |                                                  |
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+| bp                 | 0x09 |float 32-bit |None  |       |         |                                                  |
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+| ai                 | 0x0a |float 32-bit |None  |       |         |                                                  |
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+| bi                 | 0x0b |float 32-bit |None  |       |         |                                                  |
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+| ad                 | 0x0c |float 32-bit |None  |       |         |                                                  |
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+
+| bd                 | 0x0d |float 32-bit |None  |       |         |                                                  |
++--------------------+------+-------------+------+-------+---------+--------------------------------------------------+\end{DoxyVerb}
+ 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a1e7bc071491d2bb238ade981953b603d}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a1e7bc071491d2bb238ade981953b603d}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!\_\_init\_\_@{\_\_init\_\_}}
+\index{\_\_init\_\_@{\_\_init\_\_}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{\_\_init\_\_()}{\_\_init\_\_()}}
+{\footnotesize\ttfamily def opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+\_\+\+\_\+init\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{int }]{channel = {\ttfamily 0},  }\item[{}]{board = {\ttfamily None} }\end{DoxyParamCaption})}
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a683d9f1e4990a71b5385d43b33542449}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a683d9f1e4990a71b5385d43b33542449}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!help@{help}}
+\index{help@{help}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{help()}{help()}}
+{\footnotesize\ttfamily def opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+help (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a6caac06936921e60e66abf8c09b507a6}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a6caac06936921e60e66abf8c09b507a6}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!ad@{ad}}
+\index{ad@{ad}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{ad}{ad}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+ad}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a6d753e001affa89805d215dce5afdc46}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a6d753e001affa89805d215dce5afdc46}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!adaptive\_pid\_enabled@{adaptive\_pid\_enabled}}
+\index{adaptive\_pid\_enabled@{adaptive\_pid\_enabled}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{adaptive\_pid\_enabled}{adaptive\_pid\_enabled}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+adaptive\+\_\+pid\+\_\+enabled}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a1f9db56bb0a32ed6badf4a512bd39a3b}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a1f9db56bb0a32ed6badf4a512bd39a3b}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!ai@{ai}}
+\index{ai@{ai}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{ai}{ai}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+ai}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_ae02385701e4daacef0725177069aa191}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_ae02385701e4daacef0725177069aa191}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!ap@{ap}}
+\index{ap@{ap}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{ap}{ap}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+ap}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a6d355169ea5ba0c7fb598d9b30f49b31}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a6d355169ea5ba0c7fb598d9b30f49b31}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!bd@{bd}}
+\index{bd@{bd}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{bd}{bd}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+bd}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a616d5f9a66fd540b3015a7a948965c62}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a616d5f9a66fd540b3015a7a948965c62}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!bi@{bi}}
+\index{bi@{bi}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{bi}{bi}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+bi}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a251d2eb11588023dce28259de333fb0e}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a251d2eb11588023dce28259de333fb0e}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!bp@{bp}}
+\index{bp@{bp}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{bp}{bp}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+bp}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_ac8132273bd964f3279b5879b374f8173}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_ac8132273bd964f3279b5879b374f8173}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!kd@{kd}}
+\index{kd@{kd}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{kd}{kd}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+kd}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a0198b19feb50289253c4361099cd3674}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a0198b19feb50289253c4361099cd3674}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!ki@{ki}}
+\index{ki@{ki}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{ki}{ki}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+ki}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_ae7a0291009725dc7154ee92c8be67f8f}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_ae7a0291009725dc7154ee92c8be67f8f}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!kp@{kp}}
+\index{kp@{kp}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{kp}{kp}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+kp}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a43341f6e2bdfa06d156635e8e334624a}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a43341f6e2bdfa06d156635e8e334624a}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!max\_integral@{max\_integral}}
+\index{max\_integral@{max\_integral}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{max\_integral}{max\_integral}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+max\+\_\+integral}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_ab99d6baf1a9fcbadeb6db04d157a86f2}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_ab99d6baf1a9fcbadeb6db04d157a86f2}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!max\_output@{max\_output}}
+\index{max\_output@{max\_output}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{max\_output}{max\_output}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+max\+\_\+output}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a482fbb19b83986a4a32f166a455e38d0}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a482fbb19b83986a4a32f166a455e38d0}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!min\_integral@{min\_integral}}
+\index{min\_integral@{min\_integral}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{min\_integral}{min\_integral}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+min\+\_\+integral}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a91b7023411baf4920fe775031481512d}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a91b7023411baf4920fe775031481512d}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!min\_output@{min\_output}}
+\index{min\_output@{min\_output}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{min\_output}{min\_output}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+min\+\_\+output}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a247bb6e8315f10db49bf00cfe071dd3f}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a247bb6e8315f10db49bf00cfe071dd3f}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!name@{name}}
+\index{name@{name}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{name}{name}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+name}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a0d4b823e7e37d49a8c6d9fe60201a2fa}\label{classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_x_y_p_i_d_a0d4b823e7e37d49a8c6d9fe60201a2fa}} 
+\index{optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}!sys\_id@{sys\_id}}
+\index{sys\_id@{sys\_id}!optoMDC.registers.mre2\_registers.XYPID@{optoMDC.registers.mre2\_registers.XYPID}}
+\doxysubsubsection{\texorpdfstring{sys\_id}{sys\_id}}
+{\footnotesize\ttfamily opto\+MDC.\+registers.\+mre2\+\_\+registers.\+XYPID.\+sys\+\_\+id}
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+C\+:/\+Users/filip.\+stary/\+Documents/138-\/882-\/00\+\_\+opto\+MDC/src/main/python/opto\+MDC/registers/\mbox{\hyperlink{mre2__registers_8py}{mre2\+\_\+registers.\+py}}\end{DoxyCompactItemize}

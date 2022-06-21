@@ -1,0 +1,28 @@
+var classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback =
+[
+    [ "__init__", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#aee258b7b84bcadbcc909c790b6ceb0e1", null ],
+    [ "GetAngleA", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a1315dfeb4f9ad7ac8bd9e73b9653ce9a", null ],
+    [ "GetAngleB", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a92e4eb53e650fe599aa5791913267a82", null ],
+    [ "GetFilteredPDValues", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a9fdff2dfc289acfe072c9b42180e6b29", null ],
+    [ "GetOpticalFeedbackA", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a52ec1fa25a89ba279946887825117562", null ],
+    [ "GetOpticalFeedbackB", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#ae5174934ea672b90a6421ad18abc2d3e", null ],
+    [ "GetPDValues", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a9913445618e4a8cfee63c40b5168c5fa", null ],
+    [ "fpd0", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#afe090c95e8ff3298690c5d3a72daf9b2", null ],
+    [ "fpd1", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a564ad62db3bd0a1996e7f298a83e5636", null ],
+    [ "fpd2", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a6b46153b88324d81a5e92eef399dc230", null ],
+    [ "fpd3", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#acf31fc8567cd972063e2c7e32fa63b07", null ],
+    [ "name", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#ab5b1984105ba23a53e49731a6496c7ab", null ],
+    [ "of_a", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a92d9d9fd3c9c62434eeb51bc416f5399", null ],
+    [ "of_b", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a82807920f90eee03384da4abd4567f71", null ],
+    [ "pd0", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#aa02844fd17790c3c56d5a4e8facbe2d2", null ],
+    [ "pd1", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a021529f93a8c9c2ecd939c88105c3f5b", null ],
+    [ "pd2", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#ad9994d8b6c28828534102ee69d384d76", null ],
+    [ "pd3", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a37b2cc4bb22fe95e8f3c6b0b25a06153", null ],
+    [ "sys_id", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a1986b04f597196ff788a87eeeac46716", null ],
+    [ "v_stability_a", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a0ccc6df5623a1100a388fc5788beb461", null ],
+    [ "v_stability_b", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#acd121a48b9780d741658e634e9582271", null ],
+    [ "x", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#afb1c97973187571e8bfc34815c3655a6", null ],
+    [ "x_stability_a", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a3ef9edaf404431ae75ca2c117fb30a66", null ],
+    [ "x_stability_b", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a460827d0c0f221cb6ffdfea902d26c30", null ],
+    [ "y", "classopto_m_d_c_1_1registers_1_1mre2__registers_1_1_optical_feedback.html#a45d9c48026bbbe03d5dafcd692b1a72b", null ]
+];

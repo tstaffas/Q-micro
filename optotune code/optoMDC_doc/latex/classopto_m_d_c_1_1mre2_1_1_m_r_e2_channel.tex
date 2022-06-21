@@ -1,0 +1,167 @@
+\hypertarget{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel}{}\doxysection{opto\+MDC.\+mre2.\+MRE2\+Channel Class Reference}
+\label{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel}\index{optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}}
+Inheritance diagram for opto\+MDC.\+mre2.\+MRE2\+Channel\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_a71399634fbf41aac854a7c6f64b8504b}{\+\_\+\+\_\+init\+\_\+\+\_\+}} (self, board, int channel\+\_\+number=0)
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_aac6f74867dcc36a557ebe960787c5755}{Get\+Control\+Mode}} (self)
+\item 
+def \mbox{\hyperlink{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_a52065a3ca5f5043f06e347331bd4c052}{Set\+Control\+Mode}} (self, Unit\+Type or str control\+\_\+mode)
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_af6ebcd554b37872cdc8136d37c3f9435}{Vector\+Pattern\+Unit}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_aba0bf19e507901f0d0da155bef42e69d}{Analog}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_acf6bda67a172d1102b1cb008d886ea22}{Signal\+Generator}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_abcd287e786134e3312a9574145725a4b}{Linear\+Output}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_a40be321b8a897db66cf80a7b058c0b3f}{Static\+Input}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_acd3d466d5f6fbaaf52614f0f95e52dfb}{OFPID}}
+\item 
+\mbox{\hyperlink{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_a74e1048cab3a1e4cec35a9cfc6b21e09}{XYPID}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\begin{DoxyVerb}Channel object which contains channel-level systems and commands. Such as StaticInput, SetControlMode, etc
+
+Parameters
+----------
+board
+    Handle for the Board object
+channel_number
+    integer of the channel (0 or 1 by default)
+
+Raises
+------
+none
+
+Notes
+-----
+MRE2Channel is an subclass of Channel. Refer to optoKummenberg.connections for methods, parameters, etc.
+
+Examples
+--------
+Instantiate a simple-mode Board with connection over COM12 port, with baud rate 9600. Then switch into pro-mode.
+This will not flush the firmware registers, so it is assumed to already be reset.
+
+>>> import optoMDC
+>>> mre2 = optoMDC.connect()
+>>> mre2.Mirror.Channel_0.GetControlMode()
+>>> mre2.Mirror.Channel_1.SignalGenerator.GetAmplitude()\end{DoxyVerb}
+ 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_a71399634fbf41aac854a7c6f64b8504b}\label{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_a71399634fbf41aac854a7c6f64b8504b}} 
+\index{optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}!\_\_init\_\_@{\_\_init\_\_}}
+\index{\_\_init\_\_@{\_\_init\_\_}!optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}}
+\doxysubsubsection{\texorpdfstring{\_\_init\_\_()}{\_\_init\_\_()}}
+{\footnotesize\ttfamily def opto\+MDC.\+mre2.\+MRE2\+Channel.\+\_\+\+\_\+init\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{board,  }\item[{int }]{channel\+\_\+number = {\ttfamily 0} }\end{DoxyParamCaption})}
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_aac6f74867dcc36a557ebe960787c5755}\label{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_aac6f74867dcc36a557ebe960787c5755}} 
+\index{optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}!GetControlMode@{GetControlMode}}
+\index{GetControlMode@{GetControlMode}!optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}}
+\doxysubsubsection{\texorpdfstring{GetControlMode()}{GetControlMode()}}
+{\footnotesize\ttfamily def opto\+MDC.\+mre2.\+MRE2\+Channel.\+Get\+Control\+Mode (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Retrieves board control mode for this channel.
+
+Parameters
+----------
+none
+
+Raises
+------
+none
+
+Returns
+-----
+UnitType
+    Control mode options set by register_tables.UnitType\end{DoxyVerb}
+ \mbox{\Hypertarget{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_a52065a3ca5f5043f06e347331bd4c052}\label{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_a52065a3ca5f5043f06e347331bd4c052}} 
+\index{optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}!SetControlMode@{SetControlMode}}
+\index{SetControlMode@{SetControlMode}!optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}}
+\doxysubsubsection{\texorpdfstring{SetControlMode()}{SetControlMode()}}
+{\footnotesize\ttfamily def opto\+MDC.\+mre2.\+MRE2\+Channel.\+Set\+Control\+Mode (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{Unit\+Type or str}]{control\+\_\+mode }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Sets board control mode for this channel.
+
+Parameters
+----------
+control_mode: UnitType or str
+    Mode to set must be in register_tables.UnitType or appropriate string format given by
+    UnitType enum attribute names.
+
+Raises
+------
+none
+
+Returns
+-----
+str
+    Firmware response or error information\end{DoxyVerb}
+ 
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_aba0bf19e507901f0d0da155bef42e69d}\label{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_aba0bf19e507901f0d0da155bef42e69d}} 
+\index{optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}!Analog@{Analog}}
+\index{Analog@{Analog}!optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}}
+\doxysubsubsection{\texorpdfstring{Analog}{Analog}}
+{\footnotesize\ttfamily opto\+MDC.\+mre2.\+MRE2\+Channel.\+Analog}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_abcd287e786134e3312a9574145725a4b}\label{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_abcd287e786134e3312a9574145725a4b}} 
+\index{optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}!LinearOutput@{LinearOutput}}
+\index{LinearOutput@{LinearOutput}!optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}}
+\doxysubsubsection{\texorpdfstring{LinearOutput}{LinearOutput}}
+{\footnotesize\ttfamily opto\+MDC.\+mre2.\+MRE2\+Channel.\+Linear\+Output}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_acd3d466d5f6fbaaf52614f0f95e52dfb}\label{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_acd3d466d5f6fbaaf52614f0f95e52dfb}} 
+\index{optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}!OFPID@{OFPID}}
+\index{OFPID@{OFPID}!optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}}
+\doxysubsubsection{\texorpdfstring{OFPID}{OFPID}}
+{\footnotesize\ttfamily opto\+MDC.\+mre2.\+MRE2\+Channel.\+OFPID}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_acf6bda67a172d1102b1cb008d886ea22}\label{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_acf6bda67a172d1102b1cb008d886ea22}} 
+\index{optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}!SignalGenerator@{SignalGenerator}}
+\index{SignalGenerator@{SignalGenerator}!optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}}
+\doxysubsubsection{\texorpdfstring{SignalGenerator}{SignalGenerator}}
+{\footnotesize\ttfamily opto\+MDC.\+mre2.\+MRE2\+Channel.\+Signal\+Generator}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_a40be321b8a897db66cf80a7b058c0b3f}\label{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_a40be321b8a897db66cf80a7b058c0b3f}} 
+\index{optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}!StaticInput@{StaticInput}}
+\index{StaticInput@{StaticInput}!optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}}
+\doxysubsubsection{\texorpdfstring{StaticInput}{StaticInput}}
+{\footnotesize\ttfamily opto\+MDC.\+mre2.\+MRE2\+Channel.\+Static\+Input}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_af6ebcd554b37872cdc8136d37c3f9435}\label{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_af6ebcd554b37872cdc8136d37c3f9435}} 
+\index{optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}!VectorPatternUnit@{VectorPatternUnit}}
+\index{VectorPatternUnit@{VectorPatternUnit}!optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}}
+\doxysubsubsection{\texorpdfstring{VectorPatternUnit}{VectorPatternUnit}}
+{\footnotesize\ttfamily opto\+MDC.\+mre2.\+MRE2\+Channel.\+Vector\+Pattern\+Unit}
+
+\mbox{\Hypertarget{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_a74e1048cab3a1e4cec35a9cfc6b21e09}\label{classopto_m_d_c_1_1mre2_1_1_m_r_e2_channel_a74e1048cab3a1e4cec35a9cfc6b21e09}} 
+\index{optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}!XYPID@{XYPID}}
+\index{XYPID@{XYPID}!optoMDC.mre2.MRE2Channel@{optoMDC.mre2.MRE2Channel}}
+\doxysubsubsection{\texorpdfstring{XYPID}{XYPID}}
+{\footnotesize\ttfamily opto\+MDC.\+mre2.\+MRE2\+Channel.\+XYPID}
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+C\+:/\+Users/filip.\+stary/\+Documents/138-\/882-\/00\+\_\+opto\+MDC/src/main/python/opto\+MDC/\mbox{\hyperlink{mre2_8py}{mre2.\+py}}\end{DoxyCompactItemize}
