@@ -65,7 +65,7 @@ def ToF_analysis(timetag_file, recipe_file, ch_sel, **kwargs):
 
 
 #--------------- Analysing the ToF histograms -----------
-def analyse_3d(histogram, index_cutoff_lower, index_cutoff_upper, index_ref, x_deg, y_deg, time, method = 'peak', background = 6, delay = 0):
+def analyse_3d(histogram, index_cutoff, index_ref, x_deg, y_deg, time, method = 'peak', background = 6, delay = 0):
     METHODS = {'peak': lidar.peak_distance, 'gauss': lidar.gauss}
     anal = METHODS[method]
     print("Starting 3D analysis")
@@ -88,8 +88,8 @@ def analyse_3d(histogram, index_cutoff_lower, index_cutoff_upper, index_ref, x_d
         for j in range(0,dimX):
             h = histogram[i][j]
             #h = ToF_histogram_offset(h,delay, binsize)
-            h[:index_cutoff_lower] = 0 #Cuts away the internal reflections, and is based on a background measurement. 
-            h[index_cutoff_upper:] = 0
+            h[:index_cutoff] = 0 #Cuts away the internal reflections, background_cutoff is assigned in ETA frontend and is based on a background measurement. 
+            
                 
             peak = np.amax(h) #Identifies the target peak
             if peak > background:  #removes pixels with only noise, noise threshold can be modified                #d, _ = lidar.gauss(time,h,index_ref) #Gaussian algorithm
@@ -127,12 +127,13 @@ def analyse_3d(histogram, index_cutoff_lower, index_cutoff_upper, index_ref, x_d
 recipe = "C:/Users/staff/Documents/Lidar LF/ETA_recipes/quTAG_LiDAR_1.2.eta" #ETA_recipe file
 
 #.timeres file to analysed
-file = 'C:/Users/staff/Documents/Lidar LF/Data/220614/bio_sample_790.8nm_40.0ms_1400cts_-17.85uA_[1.2, 1.2, -1.2, -1.2]_100x100_220614.timeres'
+file = 'C:/Users/staff/Documents/Lidar LF/Data/220422/klara_1_10.0ms_100cts_17.3uA_[4, 9, -5, -4]_300x300_220419.timeres'
+file = 'C:/Users/staff/Documents/Lidar LF/Data/210510/TerracottaMan_10ms_10MHz_0.45MHzCts_16.5uA_[8,8,-8,-8]_100x100_210522.timeres'
 anal_method = "peak"
 
 #Parameters for etabackend to generate histograms
 base_binsize = 16 #Histogram binsize in ps
-base_bins = 12500 #Number of bins in the histogram: bins*binsize should equal 1/f where f is the repition rate of the laser in use
+base_bins = 6250 #Number of bins in the histogram: bins*binsize should equal 1/f where f is the repition rate of the laser in use
 ch_sel = 't1' #Selects a specific histogram
 records_per_cut = 2e5 #Number of events to be used per evalution cycle in ETA, not important in this code
 base_sync_delay = 0 #40000  #All events of the sync channel is delayed by 40000 ps (not necessary)
@@ -148,17 +149,13 @@ time = (np.arange(0,base_bins)*base_binsize) #Recreate time axis
 
 #----------------- Variables ---------------------
 #Scanning variables
-rect = [1.2, 1.2, -1.2, -1.2] #Voltage range of scan, linear to angle
+rect = [8,8,-8,-8] #Voltage range of scan, linear to angle
 x_deg, y_deg = lidar.angles(rect,base_dimX,base_dimY)
 
 #Analysis parameter
-time_ref_lower = 1800 #107500 #10500 #
-index_cutoff_lower = int(time_ref_lower/base_binsize) #Removes the background noise. This value depends on the specifics of the setup and the delays. Must be optimised for new setups
-index_ref = int(time_ref_lower-1500/base_binsize) #Time index of the mirrors position, used as origin when calculating 3D point clouds. Not at zero because the laser must first travel to the optical setup. Mus be measured seperatly
-
-time_ref_upper = 5000 #107500 #10500 #
-index_cutoff_upper = int(time_ref_upper/base_binsize) #Removes the background noise. This value depends on the specifics of the setup and the delays. Must be optimised for new setups
-index_ref = int(time_ref_upper - 1500/base_binsize) #Time index of the mirrors position, used as origin when calculating 3D point clouds. Not at zero because the laser must first travel to the optical setup. Mus be measured seperatly
+time_ref = 72500 #10500 #
+index_cutoff = int(time_ref/base_binsize) #Removes the background noise. This value depends on the specifics of the setup and the delays. Must be optimised for new setups
+index_ref = int((time_ref)/base_binsize) #Time index of the mirrors position, used as origin when calculating 3D point clouds. Not at zero because the laser must first travel to the optical setup. Mus be measured seperatly
 
 #Plotting parameters
 coff = 4  #Removes outliers for plotting purposes. Simply to avoid squished plots
@@ -170,9 +167,7 @@ histogram, START, load_time, TOF_anal_time = ToF_analysis(file, recipe, ch_sel,
                                                           bins = base_bins, binsize=base_binsize,
                                                           dimX=base_dimX, dimY=base_dimY, sync_delay = base_sync_delay)
 
-d_data, i_data = analyse_3d(histogram, index_cutoff_lower, index_cutoff_upper, index_ref,
-                            x_deg, y_deg, time,
-                            method = anal_method,  background = 6, delay = base_delay)
+d_data, i_data = analyse_3d(histogram, index_cutoff, index_ref, x_deg, y_deg, time, method = anal_method,  background = 6, delay = base_delay)
 file = Path(file)
 
 ##lidar.save_pixel_array(histogram, file, dimX, dimY, binsize) #To save some raw data for troubleshooting
@@ -186,12 +181,12 @@ print("Total Analysis time: ", t.time()-START)
 print("Saving Images")
 coff = int(coff) # prevents the images from being to squished
 
-kernel = 'identity'
-i_matrix = intensity_map.intensity_matrix(i_data, 1e7, 10, intensity_map.KERNELS[kernel])
-intensity_map.plot_heatmap(i_matrix)
+#kernel = 'identity'
+#i_matrix = intensity_map.intensity_matrix(i_data, 1e7, 10, intensity_map.KERNELS[kernel])
+#intensity_map.plot_heatmap(i_matrix)
 
-#lidar.scatter(d_data, file, cutoff = coff, name = anal_method + "_Fit_", show = True)#, ylim = (300,600), xlim=(-200,200))#
-#lidar.save_data(d_data, file, anal_method + '_')
+lidar.scatter(d_data, file, cutoff = coff, name = anal_method + "_Fit_", show = True)#, ylim = (300,600), xlim=(-200,200))#
+lidar.save_data(d_data, file, anal_method + '_')
 print("Job Done!")
 
 

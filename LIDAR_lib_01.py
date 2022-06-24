@@ -65,14 +65,11 @@ def angles(rect,dimX,dimY):
 #------- Functions for plotting and saving data ------- 
 def scatter(d_data, file, cutoff, name = "",save = True, show = False, **kwargs):
     #Produces a 3d scatterplot of the generated data and saves it
-    Xdata , Ydata, Zdata, order  = [], [], [], []
+    Xdata , Ydata, Zdata = [], [], []
     for p in d_data:
-        v = d_data[p]
-        if  v[3]==1:
-            Xdata.append(v[0])
-            Ydata.append(v[1])
-            Zdata.append(v[2])
-            
+        Xdata.append(p[0])
+        Ydata.append(p[1])
+        Zdata.append(d_data[p])
         
     fig = plt.figure(figsize=(15,15))
     ax = fig.add_subplot(111,projection="3d")
@@ -194,26 +191,19 @@ def save_all_pixels(histogram,file, dimX, dimY, binsize = 16):
 def save_data(d_data, file, name):
     #Saves the X,Y,Z data in a text file
 
-    x,y,z,valid, I, J  = [], [], [], [], [], []
+    x, y, z = [], [], []
     for p in d_data:
-        v = d_data[p]
-        x.append(v[0])
-        y.append(v[1])
-        z.append(v[2])
-        valid.append(v[3])
-        I.append(p[0])
-        J.append(p[1])
-
-    
-    #return x,y,z,I,J
-
+        x.append(p[0])
+        y.append(p[1])
+        z.append(d_data[p])
+        
     #Saves the data
     if not os.path.exists(file.parent.joinpath(f'3d data')): #If folder does not exist, create it
         os.makedirs(file.parent.joinpath(f'3d data'))
     
     filename = name+file.stem
     savepath = file.parent.joinpath(f'3d data', filename + '.txt')
-    np.savetxt(savepath,np.transpose([I,J,x,y,z, valid]), header = 'i,j,x,y,z,valid')
+    np.savetxt(savepath,np.transpose([x,y,z]))
 
 def save_intensity_data(d_data, i_data, file, name):
     
@@ -223,7 +213,7 @@ def save_intensity_data(d_data, i_data, file, name):
         y.append(p[1])
         z.append(d_data[p])
         I.append(i_data[p])
-
+        
     #Saves the data
     if not os.path.exists(file.parent.joinpath(f'3d+intensity data')): #If folder does not exist, create it
         os.makedirs(file.parent.joinpath(f'3d+intensity data'))
