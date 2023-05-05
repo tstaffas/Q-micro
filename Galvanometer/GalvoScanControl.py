@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import os
 from turtle import *
 
-
 """
 TODO:
 - fix DLL problem with ljm library
@@ -25,6 +24,7 @@ TODO:
 
 """
 
+
 # UPDATED: 5/5-2023
 
 class T7:
@@ -34,13 +34,13 @@ class T7:
 
         # Opens communication with labjack and get's the handle back
         self.handle = ljm.openS("ANY", "ANY", "ANY")
-        #ErrorCheck(self.handle, "LJM_Open");
+        # ErrorCheck(self.handle, "LJM_Open");
 
         # Get and print handle information from the Labjack
         info = ljm.getHandleInfo(self.handle)
-        #ErrorCheck(info, "PrintDeviceInfoFromHandle");
+        # ErrorCheck(info, "PrintDeviceInfoFromHandle");
 
-        print(f"Opened a LabJack with Device type: {info[0]}, Connection type: {info[1]},\n Serial number: {info[2]}, IP address: {ljm.numberToIP(info[3])}, Port: {info[4]},\nMax bytes per MB: {info[5]} \n" )
+        print(f"Opened a LabJack with Device type: {info[0]}, Connection type: {info[1]},\n Serial number: {info[2]}, IP address: {ljm.numberToIP(info[3])}, Port: {info[4]},\nMax bytes per MB: {info[5]} \n")
 
         # Create (scanning plan) list for addresses and values that is sent every column scanned
         self.aAddresses = []
@@ -48,78 +48,66 @@ class T7:
 
         # Create list for x values and y values (y: ONLY ONE COLUMN) we send as command to servo motor to set --> units: maybe voltage?
         self.x_values = []
-        self.y_values = []   # list of all y values sent
+        self.y_values = []  # list of all y values sent
         self.y_values_up = []
         self.y_values_down = []
 
         # Plotting lists (extras)
-        self.t_values_up = []    # plotting
+        self.t_values_up = []  # plotting
         self.t_values_down = []  # plotting
 
         # Servo and labjack addresses
         # TODO: DOUBLE CHECK THAT IT IS RIGHT TICK DAC ADDRESS
-        self.x_address = "TDAC1"     # "30002"  "FIO1"
-        self.y_address = "TDAC0"     # "30000"  "FIO0"
+        self.x_address = "TDAC1"  # "30002"  "FIO1"
+        self.y_address = "TDAC0"  # "30000"  "FIO0"
         self.wait_address = "WAIT_US_BLOCKING"
+        self.start_stream_address = ""
+        self.end_stream_address = ""
 
-        # TODO: enter value
-        self.wait_value = 10*1000           # t_delay = time_per_pixel =10*1000 #Integration time per pixel in micro seconds
 
         # Qtag addresses
-        self.q_start_address = ""       # marks start of scan
-        self.q_stop_address = ""        # marks end of scan
-        self.q_step_address = ""        # marks each change in x value
-        self.q_step_value = 0         # TODO: unsure if we need this
-
-        # Define padding to include between every command sent
-
-        # wait delay will be based on scan but with buffer we can do half (or maybe its actually a whole) period
-
-        self.padding_addresses =  [  # TODO: we don't need padding anymore, only wait. --> change code - where this is called
-            #self.q_start_address, self.wait_address,  self.q_start_address,
-            self.wait_address,
-            #self.q_stop_address,  self.wait_address,  self.q_stop_address
-        ]
-
-        self.padding_values = [
-            #self.marker_voltage,   1,   0,
-            self.wait_value,
-            #self.marker_voltage,   1,   0
-        ]
+        self.q_start_address = ""  # marks start of scan
+        self.q_stop_address = ""  # marks end of scan
+        self.q_step_address = ""  # marks each change in x value
+        self.q_step_value = 0  # TODO: unsure if we need this
 
         # Misc
-        self.scantype = scantype     # {"X", "Y", "XY"}
-        self.scanform = scanform     # { "raster" , "lissajous",  "saw-sin" }
-        self.record = record         # { True , False }
+        self.scantype = scantype  # {"X", "Y", "XY"}
+        self.scanform = scanform  # { "raster" , "lissajous",  "saw-sin" }
+        self.record = record  # { True , False }
         self.filename = filename
-        self.scantime = 10
 
         # Scan parameters
 
-        # TODO: organize into cases waveform and create get Parameters function
+        # TODO: organize into cases waveform and do same in getParameters function
+        self.scantime = 0
+        self.wait_value = 0
+        self.x_delay = 0
+        self.y_delay = 0
 
-        self.X_angle = 1           # mechanical angle in degrees i think
-        self.Y_angle = 1           # mechanical angle in degrees i think
+        self.X_angle = 0
+        self.Y_angle = 0
         self.x_static = 0
         self.y_static = 0
-        self.x_steps = 100          # TODO: control and be variable
-        self.y_steps = 10000        # TODO: hard code to max resolution we can have
+        self.x_steps = 0
+        self.y_steps = 0
 
-        self.y_min = -self.Y_angle*0.22
-        self.y_max = self.Y_angle*0.22
-        self.x_min = -self.X_angle*0.22
-        self.x_max = self.X_angle*0.22
+        self.y_min = 0
+        self.y_max = 0
+        self.x_min = 0
+        self.x_max = 0
 
-        self.x_step_size = (self.x_max - self.x_min) / self.x_steps  # step size of our x values
+        self.x_step_size = 0
 
-        self.y_phase = np.pi/2
+        self.y_phase = 0
         self.t_half_period = 0
+        self.t_period = 0
         self.t_step_size = 0
 
         self.x_frequency = 0  # lissalous tex so not now
-        self.y_frequency = 0.5
-        self.scan_iterations = 1
-        self.y_sweep_iterations = 10
+        self.y_frequency = 0
+        self.scan_iterations = 0
+        self.y_sweep_iterations = 0
 
     def galvo_scan(self):
         # Step 1) Calculate all scan parameters
@@ -141,22 +129,53 @@ class T7:
             return False
 
         # Step 5) Fill buffer with sine values to loop over
-        #self.create_buffer()
+        # self.create_buffer()
 
         # Step 6) Perform scan
         self.start_galvo_scan()
 
-
         return True
 
-    # Step 1   TODO: move param definitions here
+    # Step 1
+    # TODO: ORGANIZE AND SET CORRECT PARAMETERS BASED ON SCANTYPE, SCANFORM, ETC...
     def get_scan_parameters(self):
 
         # Y scan:
         # time step size for our y values (sine)t = [0, t_half_period]
-        self.y_phase = np.pi/2
-        self.t_half_period = 1 / ( 2* self.y_frequency)
+
+        self.y_phase = np.pi / 2
+        self.t_half_period = 1 / (2 * self.y_frequency)
+        self.t_period = 1 / self.y_frequency
         self.t_step_size = self.t_half_period / self.y_steps
+
+        # TODO: organize into cases waveform and create get Parameters function
+        self.scantime = 10  # TODO ????
+        self.wait_value = 10 * 1000  # t_delay = time_per_pixel =10*1000 #Integration time per pixel in micro seconds
+        self.x_delay = 0
+        self.y_delay = 0
+
+        self.X_angle = 1  # mechanical angle in degrees i think
+        self.Y_angle = 1  # mechanical angle in degrees i think
+        self.x_static = 0
+        self.y_static = 0
+        self.x_steps = 100  # TODO: control and be variable
+        self.y_steps = 10000  # TODO: hard code to max resolution we can have
+
+        self.y_min = -self.Y_angle * 0.22
+        self.y_max = self.Y_angle * 0.22
+        self.x_min = -self.X_angle * 0.22
+        self.x_max = self.X_angle * 0.22
+
+        self.x_step_size = (self.x_max - self.x_min) / self.x_steps  # step size of our x values
+
+        self.y_phase = np.pi / 2
+        self.t_half_period = 0
+        self.t_step_size = 0
+
+        self.x_frequency = 0  # lissalous tex so not now
+        self.y_frequency = 0.5
+        self.scan_iterations = 1
+        self.y_sweep_iterations = 10
 
     # Step 2
     # TODO: add more safety checks!
@@ -166,18 +185,18 @@ class T7:
 
         # TODO: decide what good limits are
         max_val = 3  # max is 5V but this gives a bit of margin, NOTE: val = 0.22*optical angle --> val = 1V is big enough for our scope
-        freq_max_x = 10000
+        freq_max_x = 10000   # for lissajous
         freq_min_x = 0.00001
-        freq_max_y = 10000
+        freq_max_y = 100000
         freq_min_y = 0.00001
 
         # Checking X- and Y static scan boundaries
-        if (max_val < np.abs(self.x_static)) or (max_val < np.abs(self.y_static)) :
+        if (max_val < np.abs(self.x_static)) or (max_val < np.abs(self.y_static)):
             print(f"Error: x_static = {self.x_static} or y_static = {self.y_static} is out of bounds!")
             raise_error = True
 
         # Checking X- and Y min/max input values
-        if (max_val < np.abs(self.x_min)) or (max_val < np.abs(self.x_max)) or (max_val < np.abs(self.y_min)) or (max_val < np.abs(self.y_max)) :
+        if (max_val < np.abs(self.x_min)) or (max_val < np.abs(self.x_max)) or (max_val < np.abs(self.y_min)) or (max_val < np.abs(self.y_max)):
             print(f"Error: [x_min, x_max] = [{self.x_min}, {self.x_max}] or [y_min, y_max] = [{self.y_min}, {self.y_max}] is out of bounds!")
             raise_error = True
 
@@ -186,36 +205,11 @@ class T7:
             print(f"Error: x_frequency = {self.x_frequency} or y_frequency = {self.y_frequency} is out of bounds!")
             raise_error = True
 
-        """
-        # Things that probably don't need to be checked:
-        #   self.y_phase = 000
-        #   self.t_half_period = 000
-        #   self.x_step_size = (self.x_max - self.x_min) / self.x_steps
-        
-        if (self.scan_iterations < 0 or 10 < self.scan_iterations):
-            print(f"Error: scan_iterations = {self.scan_iterations} is out of bounds!")   # unless we want to change it
-            raise_error = True
-
-        if (self.y_sweep_iterations < 0 or 100 < self.y_sweep_iterations):
-            print(f"Error: y_sweep_iterations = {self.y_sweep_iterations} is out of bounds!")  # unless we want to change it
-            raise_error = True
-
-        if (self.x_steps < 1) or (500 < self.x_steps) or (self.y_steps < 10) or (500 < self.y_steps):
-            print(f"Error: x_steps = {self.x_steps} or y_steps = {self.y_steps} is out of bounds!")  # unless we want to change it
-            raise_error = True
-
-        # Check if delta X is too small or large --> step size of our x values          # TODO: decide what min and max is for change in voltage input!!!
-        d_x = np.Abs(self.x_max-self.x_min)/self.x_steps
-        if (d_x < 0.001) or ( 0.1 < d_x) :
-            print(f"Error: delta_x = {d_x} is out of bounds!")  # unless we want to change it
-            raise_error = True
-        """
-
         # Return false (no error) if we passed all the tests!
         return raise_error
 
     # Step 3
-    def socket_connection(self):   # TODO: maybe make nicer later
+    def socket_connection(self):  # TODO: maybe make nicer later
         """ Sets up a server ot communciate to the qutag computer to start a measruement
             Sends the file and scan time to the computeer"""
 
@@ -249,7 +243,7 @@ class T7:
                 break
 
     # Step 5
-    def decide_scan(self):
+    def decide_scan(self): # TODO: Add some troubleshooting special scan cases
         if self.scantype == "X":
             self.scan_X()
         elif self.scantype == "Y":
@@ -259,80 +253,58 @@ class T7:
         else:
             print("Invalid scan type selected! Please consult directions and try again.")
             return True
-        return False   # returns false if no error is found
+        return False  # returns false if no error is found
 
     # ---------- SCAN FUNCTIONS ----------
+
+    # Note: Currently only defined for x in command list and y in buffer!
     def scan_X(self):
+        """ Y is static at a given value and we step through X values """
 
-        # Step 0) Add time delay
-        self.aAddresses.append(self.wait_address)
-        self.aValues.append(self.wait_value)
-
-        # Step 1) Add static y value that we want to scan at
-        self.aAddresses.append(self.y_address)
-        self.aValues.append(self.y_static)
-
-        # Step 2)
+        # Step 1) Get a list of x values given scan parameters. Note: y-values not needed since buffer is ignored
         self.x_values = self.get_x_values()
+        #self.y_values = self.get_y_values()
 
-        # Step 3)
-        self.populate_lists(addr=self.x_address, list_values=self.x_values)
+        # Step 2) Populates command list with calculated x values and addresses
+        self.populate_lists(addr=self.x_address, list_values=self.x_values, t_delay=self.x_delay)
 
-        # Step 4) Initiate start position of galvo at x_min
-        rc = ljm.eWriteNames(self.handle, 1, [self.x_address], [self.x_min])
+        # 3) Buffer config
+            # SKIP
 
+        # Step 4) Initiate start position of galvo at x_min, and y_static
+        rc = ljm.eWriteNames(self.handle, 2, [self.x_address, self.y_address], [self.x_min, self.y_static])
+        time.sleep(1) # wait for 1 second to give galvos a bit of time to get to their initial positions
+
+    # Note: Currently only defined for x in command list and y in buffer!
     def scan_Y(self):
+        """ X is static at a given value and we step through Y values (with buffer) """
 
-        # Step 0) Add time delay
-        self.aAddresses.append(self.wait_address)
-        self.aValues.append(self.wait_value)
+        # Step 1) Get a list of x and y values given scan parameters
+        self.x_values = self.get_x_values()    # NOTE: Since we have static x, this will return a list of the same value
+        self.y_values = self.get_y_values()
 
-        # Step 1) Add static x value that we want to scan at:
-        self.aAddresses.append(self.x_address)
-        self.aValues.append(self.x_static)
+        # Step 2) Populates command list with calculated x values and addresses
+        self.populate_lists(addr=self.x_address, list_values=self.x_values, t_delay=self.x_delay)
 
-        # Step 2) populating "y_values_up" list with discrete values of sine curve values
-        self.y_values_up, self.y_values_down = self.get_y_values()
+        # 3) Buffer config --> send y values
+        # TODO: add Y values to buffer
 
-        # Step 3) now we have a list of sine values for HALF a period (one way) and a list for the other half period
-        for i in range(self.y_sweep_iterations):
-            if i % 2 == 0:  # sweep up
-                self.populate_lists(self.y_address, self.y_values_up)
-                self.y_values += self.y_values_up
-            if i % 2 == 1:  # sweep down
-                self.populate_lists(self.y_address, self.y_values_down)
-                self.y_values += self.y_values_down
+        # Step 4) Initiate start position of galvo at y_min, and x_static
+        rc = ljm.eWriteNames(self.handle, 2, [self.x_address, self.y_address], [self.x_static, self.y_min])
+        time.sleep(1) # wait for 1 second to give galvos a bit of time to get to their initial positions
 
-
-        # Step 4) Initiate start position of galvo at y_min
-        rc = ljm.eWriteNames(self.handle, 1, [self.y_address], [self.y_min])
-
+    # Note: Currently only defined for x in command list and y in buffer!
     def scan_XY(self):
 
-        # Step 0) Add time delay
-        self.aAddresses.append(self.wait_address)
-        self.aValues.append(self.wait_value)
-
-        # Step 1) Add static x value that we want to scan at:
-        # --> skip since it is a 2D scan
-
-        # Step 2) populating lists with discrete step values and values of sine curve values
+        # Step 1) Get a list of x and y values given scan parameters
         self.x_values = self.get_x_values()
-        self.y_values_up, self.y_values_down = self.get_y_values()
+        self.y_values = self.get_y_values()
+
+        # Step 2) Populates command list with calculated x values and addresses
+        self.populate_lists(addr=self.x_address, list_values=self.x_values, t_delay=self.x_delay)
 
         # Step 3) now we have a list of sine values for HALF a period (one way) and a list for the other half period
-        for i in range(self.y_sweep_iterations):
-            # Step one x value
-            x_val = self.x_values[i]
-            self.populate_lists(addr=self.x_address, list_values=[x_val])  # TODO: decide if we want to have the added time delay between x and y values as well...
-
-            # Add all y values for one up/down sweep
-            if i % 2 == 0:  # sweep up
-                self.populate_lists(self.y_address, self.y_values_up)
-                self.y_values += self.y_values_up
-            if i % 2 == 1:  # sweep down
-                self.populate_lists(self.y_address, self.y_values_down)
-                self.y_values += self.y_values_down
+            # TODO: add Y values to buffer
 
         # Step 4) Initiate start position of galvo at y_min
         rc = ljm.eWriteNames(self.handle, 2, [self.x_address, self.y_address], [self.x_min, self.y_min])
@@ -341,18 +313,27 @@ class T7:
         # Create list for x values (ONLY ONE COLUMN) we send as command to servo motor to set --> units: maybe voltage?
         x_values = []
 
-        # populating "x_values" list with discrete values
-        k = self.x_min
-        for i in range(self.x_steps):
-            x_values.append(k)
-            k += self.x_step_size
+        # If we want to step x values
+        if scantype == 'X' or scantype == 'XY':
+            # populating "x_values" list with discrete values
+            k = self.x_min
+            for i in range(self.x_steps):
+                x_values.append(k)
+                k += self.x_step_size
+
+        elif scantype == 'Y':
+            # populating "x_values" list with x_Static a number of times ( == self.x_steps)
+            for i in range(self.x_steps):
+                x_values.append(self.x_static)
+
+        else:
+            print("Error in get x values! Wrong scantype given.")
 
         return x_values
 
     def get_y_values(self):
-        t_curr = 0
-        y_values_up = []
 
+        y_values_up = []
         for i in range(self.y_steps):
             t_curr = i * self.t_step_size
             y_curr = self.y_max * np.sin((2 * np.pi * self.y_frequency * t_curr) - self.y_phase)
@@ -363,76 +344,60 @@ class T7:
 
         y_values_down = self.y_values_up.copy()
         y_values_down.reverse()
-        return y_values_up, y_values_down
 
-    def populate_lists(self, addr, list_values):
+        y_values  = y_values_up + y_values_down  # merge two lists into new list --> this is one period that we will repeat with buffer
+
+        return y_values
+
+    def populate_lists(self, addr, list_values, t_delay):
+
+        # TODO: add start buffer command. CHECK if buffer call value is ok
+        # add wait and start buffer command at start
+        self.aAddresses += [self.wait_address, self.start_stream_address]
+        self.aValues += [self.wait_value, 1]       # TODO: decide what the first WAIT value should be!
+
+        # Add remaining commands to list
         for val in list_values:
-            # maybe also add wait marker!
-            #self.aAddresses.append(self.q_step_address)
-            #self.aValues.append(self.q_step_value)
+            # Add delay (can be different delays for different lists) and one value at a time to list
+            self.aAddresses += [addr, self.wait_address]
+            self.aValues += [val, t_delay]
 
-            # TODO: check if padding is done/added correctly
-            self.aAddresses += self.padding_addresses
-            self.aValues += self.padding_values
+        # TODO: add stop buffer command. CHECK if buffer call is ok
+        # add wait and end buffer command at start
+        self.aAddresses += [self.wait_address, self.end_stream_address]
+        self.aValues += [self.wait_value, 0]       # TODO: decide what the first WAIT value should be!
 
-            self.aAddresses.append(addr)
-            self.aValues.append(val)
-
-    # TODO: finsih writing
+    # TODO: call AFTER we finish filling self.y_values
     def prepare_buffer_stream(self):
-        pass
+        """NOTE: THIS IS CURRENTLY ONLY FOR Y VALUES"""
 
-        #Calling 'PeriodicStreamOut' will enable an out-stream that will
+        # Calling 'PeriodicStreamOut' will enable an out-stream that will
         #    loop over data values written to it when LJM_eStreamStart is called,
         #    then stop streaming values when LJM_eStreamStop is called.
-        """
         # https://labjack.com/pages/support?doc=/datasheets/t-series-datasheet/32-stream-mode-t-series-datasheet/#section-header-two-ttmre
-        STREAM_OUT0_ENABLE = 0                       # → Turn off just in case it was already on.
-        STREAM_OUT0_TARGET = 1000                    # → Set the target to DAC0.
-        STREAM_OUT0_BUFFER_ALLOCATE_NUM_BYTES = 512  # → A buffer to hold up to 256 values.
-        STREAM_OUT0_ENABLE = 1                       # → Turn on Stream-Out0.
 
-        STREAM_OUT0_BUFFER_F32 = [0.5, 1, 1.5, 1]       # → Write the four values one at a time or as an array.
-        STREAM_OUT0_LOOP_NUM_VALUES = 4                 # → Loop four values.
-        STREAM_OUT0_SET_LOOP = 1                        # → Begin using new data set immediately.
+        # Step 1) Defining constants to set
+        targetAddr = 30000   # TDAC0 = fast axis = y axis
+        samplesToWrite = 256   # <-- how many values we save to buffer  TODO: check how many y_values we can fit in a buffer, max 512 (16-bit samples)
+        scanRate = samplesToWrite/self.t_period     # = scans per second = samples per second for one address
+        streamOutIndex = 0   # index in: "STREAM_OUT0"
+        nrAddresses = 1
+        aScanList = [4800]  # "STREAM_OUT0"
+        scansPerRead = scanRate / 2   # When performing stream out with no stream in, ScansPerRead input parameter to LJM_eStreamStartis ignored. https://labjack.com/pages/support/?doc=%2Fsoftware-driver%2Fljm-users-guide%2Festreamstart
 
-        # eWriteNameArray(self.handle, ...)
+        # Step 2) Write values to stream buffer (memory)
+        err = ljm.LJM_PeriodicStreamOut(self.handle, streamOutIndex, targetAddr, scanRate, samplesToWrite, self.y_values )
+        #ErrorCheck(err, "LJM_PeriodicStreamOut")
 
-
-        # --------------------------------------------------------------
-        #
-        scanRate = 1000
-        NUM_SCAN_ADDRESSES = 1
-        scanList = ["STREAM_OUT0"]
-        targetAddr = 1000  #// DAC0
-        streamOutIndex = 0
-        samplesToWrite = 512
-        values = []
-        # Open
-        err = ljm.LJM_PeriodicStreamOut(
-            self.handle,
-            streamOutIndex, # The number assigned to this stream-out. See the Stream Out section of the T-series datasheet for more information.
-            targetAddr,     # The target register to send stream-out data to. See the Stream Out section of the T-series datasheet for a list of potential targets.
-            scanRate,       # The desired number of scans per second. Should be the same value as set in LJM_eStreamStart.
-                            # Keep in mind that data rate limits are specified in Samples/Second which is equal to NumAddresses * Scans/Second or NumAddresses * ScanRate.
-            samplesToWrite, # NumValues,      # The number of values to write to the stream-out buffer. This is also the number of values that will be looped over.
-            values          # aWriteData      # The data array to be written to the stream-out buffer.
-        )
-        #ErrorCheck(err, "LJM_PeriodicStreamOut");
-
-        scansPerRead = scanRate / 2
-        aScanList = []
-        aTypes = []
-
-        err = ljm.LJM_eStreamStart( self.handle, scansPerRead, NUM_SCAN_ADDRESSES,  aScanList, & scanRate)
+        # Step 3) Start scan # TODO: move this thing to command list! FIRST COMMAND
+        err = ljm.LJM_eStreamStart(self.handle, scansPerRead, nrAddresses,  aScanList, scanRate)
         #ErrorCheck(err, "LJM_eStreamStart");
 
-        # Run for some time then stop the stream
-        time.sleep(5)
+        # Step 4) After scan is done, terminate stream of sine wave TODO: move this thing to command list! LAST COMMAND
         print("Stopping stream...\n")
         err = ljm.LJM_eStreamStop(self.handle)
         #ErrorCheck(err, "Problem closing stream");
-        """
+
 
     def start_galvo_scan(self):
 
@@ -440,30 +405,29 @@ class T7:
 
         # -------- SCAN STARTS ---------
         # send start marker to qtag  (maybe add time delay or other info to qtag)
-        #rc = ljm.eWriteNames(self.handle, 3, [ self.q_start_address,  self.wait_address, self.q_start_address], [1,1,0])
+        # rc = ljm.eWriteNames(self.handle, 3, [ self.q_start_address,  self.wait_address, self.q_start_address], [1,1,0])
         # check length of
 
         # sends scan commands to galvo/servo (and maybe step markers)
-        rc = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
+        # TODO: make sure we add buffer start and stop command in command list before we populate list with x values!!!
+        rc = ljm.eWriteNames(self.handle, len(self.aAddresses),  self.aAddresses, self.aValues)
 
+        # TODO: add stop buffer
         # sends stop commands to galvo/servo
-        # TODO: maybe add stop buffer too
-        rc = ljm.eWriteNames(self.handle, 2, [self.x_address, self.y_address], [0,0])
+        rc = ljm.eWriteNames(self.handle, 2, [self.x_address, self.y_address], [0, 0])
 
         # send end marker to qtag
-       # rc = ljm.eWriteNames(self.handle, 3, [ self.q_stop_address,  self.wait_address, self.q_stop_address], [1,1,0])
+        # rc = ljm.eWriteNames(self.handle, 3, [ self.q_stop_address,  self.wait_address, self.q_stop_address], [1,1,0])
         # -------- SCAN ENDS -----------
 
         end_time = time.time()
-        print("Scan time:" , end_time-start_time)
+        print("Scan time:", end_time - start_time)
 
     # TODO: finish writing this
     def sample_buffer(self):
         data = {'t': [], 'x_in': [], 'y_in': [], 'x_out': [], 'y_out': []}
         data['x_in'] = self.x_values
         data['y_in'] = self.y_values
-
-
 
         return data
 
@@ -479,7 +443,7 @@ class T7:
         plt.plot(self.t_values_down, self.y_values_down, 'b.')
         plt.show()
 
-        #ans = input("Looking at the figure, would you like to prodeed? (y/n)")
+        # ans = input("Looking at the figure, would you like to prodeed? (y/n)")
 
 
 # __________ MANAGEMENT FUNCTIONS __________
@@ -488,7 +452,7 @@ def manage_local_files(filename, data):
     # OLD FILE NAME = f'{scan_name}_[{x_dim},{y_dim}]_[x,y]_{x_lim}_x_lim_{y_amp}_amp_{y_freq}_yfreq__bias_{bias}uA_{cts}kHz_Cts_{today}'  # where scan_name = '68_LV_0mA'
 
     # Get date and time
-    curr_date = date.today().strftime("%y%m%d")     # required: from datetime import date
+    curr_date = date.today().strftime("%y%m%d")  # required: from datetime import date
     curr_time = time.strftime("%Hh %Mm", time.localtime())
 
     # Create date folder
@@ -508,26 +472,31 @@ def manage_local_files(filename, data):
     # fig, name = plot_...()
     # save_mat_fig(fig, name, curr_date, curr_time)
 
+
 def save_data(data, data_file):
     # Saving info about scan, which parameters, time taken, anything else we want to save for later review
-    txt_in_file = ""                                # TODO: decide if and what text we want in our file
+    txt_in_file = ""  # TODO: decide if and what text we want in our file
     data_file.write(f"{txt_in_file}\n")
     data_file.write(f"\n"
                     f"x_in, y_in are theoretical values that are sent to servos\n"
                     f"x_out, y_out are measured values that are sampled from servos\n")
 
-    data_file.write('DATA:' + '\n' + '       t       |       x_in       |       y_in       |       x_out       |       y_out       ' + '\n')
+    data_file.write(
+        'DATA:' + '\n' + '       t       |       x_in       |       y_in       |       x_out       |       y_out       ' + '\n')
     for j in range(len(data['t'])):
-        str_row_j = str(data['t'][j]) + ' | ' + str(data['x_in'][j]) + ' | ' + str(data['y_in'][j]) + ' | ' + str(data['x_out'][j]) + ' | ' + str(data['y_out'][j]) + '\n'
+        str_row_j = str(data['t'][j]) + ' | ' + str(data['x_in'][j]) + ' | ' + str(data['y_in'][j]) + ' | ' + str(
+            data['x_out'][j]) + ' | ' + str(data['y_out'][j]) + '\n'
         data_file.write(str_row_j)
 
     data_file.close()
+
 
 def save_mat_fig(fig, name, curr_date, curr_time):
     file = open(f'K:\\Microscope\\Data\\{curr_date}\\Scan_{curr_time}\\{name}.mpl', 'wb')
     pickle.dump(fig, file)
     file.close()
     # https://stackoverflow.com/questions/67538039/python-equivalent-of-fig-file-from-matlab?noredirect=1&lq=1
+
 
 def open_mat_fig(name, curr_date, curr_time):
     # ------- HOW TO OPEN PREVIOUS FIG FILE ------
@@ -556,42 +525,50 @@ def turtle_figure(values):
         myPen.pendown()
         # myPen.getscreen().update()   # not needed
 
-    time.sleep(11)   # Needed since turtle window disappears otherwise ... i think
+    time.sleep(11)  # Needed since turtle window disappears otherwise ... i think
+
 
 def config_turtle(window, myPen, values):
-
     window.bgcolor("#FFFFFF")
     myPen.hideturtle()
     # turtle.setworldcoordinates(-1, -1, 20, 20)
-    #myPen.tracer(0)
+    # myPen.tracer(0)
     myPen.speed(0)
     myPen.pensize(3)
     myPen.color("#AA00AA")
     myPen.penup()
     myPen.goto(1, 110)
 
-    minx = 1000000;  maxx = -1000000;  miny = 1000000;  maxy = -1000000
+    minx = 1000000
+    maxx = -1000000
+    miny = 1000000
+    maxy = -1000000
     for i in range(0, len(values)):
-     x = values[i][1] * 2000
-     y = (0.01 + values[i][2]) * 40000
-     if x < minx:
-      minx = x
-     if x > maxx:
-      maxx = x
-     if y < miny:
-      miny = y
-     if y > maxy:
-      maxy = y
+        x = values[i][1] * 2000
+        y = (0.01 + values[i][2]) * 40000
+        if x < minx:
+            minx = x
+        if x > maxx:
+            maxx = x
+        if y < miny:
+            miny = y
+        if y > maxy:
+            maxy = y
 
     print(minx, maxx, miny, maxy)
-    #window.setworldcoordinates(minx, miny, maxx, maxy)
+    # window.setworldcoordinates(minx, miny, maxx, maxy)
+
+
 # ------------------------
 
 
 if __name__ == '__main__':
 
-    scantype = "X"          ### { "X" , "Y" , "XY" }
-    scanform = "raster"     ### { "raster" , "lissajous",  "saw-sin" }
+
+
+
+    scantype = "X"  ### { "X" , "Y" , "XY" }
+    scanform = "raster"  ### { "raster" , "lissajous",  "saw-sin" }
     record = False
     filename = "placeholderFilename"
 
@@ -605,12 +582,11 @@ if __name__ == '__main__':
         pass
 
         # 3) Stream values from buffer
-        #data = t7.sample_buffer()
+        # data = t7.sample_buffer()
 
         # 4) Save data, plot figures, etc.
-        #manage_local_files(filename, data)
+        # manage_local_files(filename, data)
 
     # 5) Terminates labjack connection
     t7.close_labjack_connection()
-
 
