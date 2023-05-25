@@ -18,6 +18,17 @@ print("Using LJM version:", ljm.__version__)
 
 # UPDATED: 17/5-2023
 
+def getInputVariableClass(scanType):
+    # Call appropriate class to get input parameters
+    if scanType == "X":
+        return X()
+    elif scanType == "Y":
+        return Y()
+    elif scanType == "XY":
+        return XY()
+    else:
+        return None
+
 class ErrorChecks:
 
     def __init__(self, max_voltage, max_x_steps, min_y_freq, max_y_freq, max_sample_rate):
@@ -100,7 +111,8 @@ class ErrorChecks:
             t7.abort_scan = True
 
 class T7:
-    # --------------- HARDCODED CLASS CONSTANT (for all scan types) -------------
+
+    # --------------- HARDCODED CLASS CONSTANT BASED ON WIRING -------------
     # Servo and labjack addresses, note: we are using tickDAC
     x_address = "TDAC1"         # "30002"  "FIO1"
     y_address = "TDAC0"         # "30000"  "FIO0"
@@ -109,59 +121,37 @@ class T7:
     q_start_address = ""        # marks start of scan               # TODO: FILL IN
     q_stop_address = ""         # marks end of scan                 # TODO: FILL IN
     q_step_address = ""         # marks each change in x value      # TODO: FILL IN
-    q_step_value = 0            # unsure if we need this            # TODO: FILL IN
     # Periodic waveform buffer for outputing Y voltage
-    b_aScanList = [4800]        # "STREAM_OUT0"
-    b_nrAddresses = 1           # only one buffer we use
-    b_targetAddress = 30000     # TDAC0 = fast axis = y axis
-    b_streamOutIndex = 0        # index of: "STREAM_OUT0" I think this says which stream you want to get from (if you have several)
 
+    b_aScanList = [ljm.nameToAddress("STREAM_OUT0")[0]]   # "STREAM_OUT0" == 4800
+    b_nrAddresses = 1           # only one buffer we use
+    b_targetAddress = ljm.nameToAddress(y_address)[0]      # y_address = 'TDAC0' = 30000  --> fast axis = y axis
+    b_streamOutIndex = 0        # index of: "STREAM_OUT0" I think this says which stream you want to get from (if you have several)
     # TODO: check how many y_values we can fit in a buffer, max 512 (16-bit samples)
     max_buffer_size = 256       # Buffer stream size for y waveform values. --> Becomes resolution of sinewave period waveform == y_steps
 
-    def __init__(self, scanClass, scanPattern, pingQuTag):
-        """
-        :param scanClass:       Either class instance for scan type or a string in {"X", "Y", "XY"} which could call the class from this init function
-        :param scanPattern: Defines which scan pattern we want  { "raster" , "lissajous",  "saw-sin" }
-        :param pingQuTag:   Bool for whether we want to ping the QuTag with the scan { True , False }
-        """
 
-        # OPTION 1: scanType is a class instance
-        # --------------- ATTRIBUTES ----------------------
-        self.typeObj = scanClass              # class for {"X", "Y", "XY"}
-        self.scanType = scanClass.scan_type   # {"X", "Y", "XY"}
-        self.filename = scanClass.filename
-        self.scanPattern = scanPattern       # { "raster" , "lissajous",  "saw-sin" }   # only raster used at the moment
-        self.q_pingQuTag = pingQuTag         # bool for whether we want to ping the qutag with the scan { True , False }
-
-        """  Option 2: scanType is a string denoting which class instance we want to create
-        def __init__(self, scanType, scanPattern, pingQuTag):
-        
-        # Call appropriate class to get input parameters   
-        if scanType == "X":
-            scanClass = X()              
-        elif scanType == "Y":
-            scanClass = Y()    
-        elif scanType == "XY":
-            scanClass = XY()    
-            
-        # --------------- ATTRIBUTES ----------------------
-        self.typeObj = scanClass               # class for {"X", "Y", "XY"}
-        self.filename = scanClass.filename
-        self.scanType = scanType            # {"X", "Y", "XY"}
-        self.scanPattern = scanPattern      # { "raster" , "lissajous",  "saw-sin" }   # only raster used at the moment
-        self.q_pingQuTag = pingQuTag        # bool for whether we want to ping the qutag with the scan { True , False }
+    def __init__(self, scanType, scanPattern, pingQuTag=False, plotting=False):
         """
-
-        # --------------- PLACEHOLDER VALUES -------------------------------------------------------
-        self.handle = None               # Labjack device handle
+        :param scanType:        Either class instance for scan type or a string in {"X", "Y", "XY"} which could call the class from this init function
+        :param scanPattern:     Defines which scan pattern we want  { "raster" , "lissajous",  "saw-sin" }
+        :param pingQuTag:       Bool for whether we want to ping the QuTag with the scan { True , False }
+        """
+        # --------------- ATTRIBUTES ----------------------------------------------------
+        self.scanVariables = getInputVariableClass(scanType)    # class for {"X", "Y", "XY"}
+        self.filename = self.scanVariables.filename
+        self.scanType = scanType                                # {"X", "Y", "XY"}
+        self.scanPattern = scanPattern                          # { "raster" , "lissajous",  "saw-sin" }   # only raster used at the moment
+        self.q_pingQuTag = pingQuTag                            # bool for whether we want to ping the qutag with the scan { True , False }
+        # --------------- PLACEHOLDER VALUES --------------------------------------------
+        self.handle = None              # Labjack device handle
         self.abort_scan = False         # Safety bool for parameter check
         self.aAddresses = []            # Scanning plan: list of addresses for all the commands
         self.aValues = []               # Scanning plan: list of values for all the commands
         self.x_values = []              # List for x values that are set during scan
         self.y_values = []              # List for y values that are set during scan
-
-        # PLOTTING:
+        # --------------- PLOTTING -------------------------------------------------------
+        self.plotFigures = plotting
         self.plt_up_y = []
         self.plt_down_y = []
         self.single_x_times = []
@@ -182,8 +172,9 @@ class T7:
         print("\nStep 3) Doing safety check on scan parameters.")
         self.auto_check_scan_parameters()
 
-        # TEMP, maybe remove later:
-        Plotting().plot_theoretical()
+        # Plotting theoretical scan values  -->  maybe remove later:
+        if self.plotFigures:
+            Plotting().plot_theoretical()
 
         # Step 3.5) Check to abort  (due to error in "self.auto_check_scan_parameters()")
         print("\nStep 3.5) Check if we need to abort scan.")
@@ -199,17 +190,7 @@ class T7:
         # Step 4) Open communication with labjack handle
         self.open_labjack_connection()
 
-        """
-        #TESTING WRITE TO LABJACK
-        names = ["TDAC0", "TDAC1"]
-        v = np.linspace(0, 0.1, 20)
-
-        for e in v:
-            aValues = [0, e]  # [2.5 V, 12345]
-            err = ljm.eWriteNames(self.handle, len(names), names, aValues)
-            print("Error =", err)
-            time.sleep(0.1)
-            print(e)"""
+        # self.TestWriteToLabJack()
 
         # Step 5) Opens communication with qu-tag server
         if self.q_pingQuTag:
@@ -240,34 +221,41 @@ class T7:
         """Configured for QS7XY-AG galvanometer: https://www.thorlabs.de/newgrouppage9.cfm?objectgroup_id=14132&pn=QS7XY-AG"""
 
         # Set by user input. Required by all types of scans.
-        self.x_angle = self.typeObj.x_angle
-        self.y_angle = self.typeObj.y_angle
-        self.x_steps = self.typeObj.x_steps
+        self.x_angle = self.scanVariables.x_angle
+        self.y_angle = self.scanVariables.y_angle
+        self.x_steps = self.scanVariables.x_steps
 
         # SCAN TYPE 1) X is variable, Y is static
         if self.scanType == "X":
-            # VARIABLES:  # input parameter selected by user (at bottom of file) given is Hz
-            self.y_static = self.typeObj.y_static
             # HARDCODED:
             self.y_waveform = 'static'  # not used atm
+            self.x_min = -self.x_angle * 0.22  # Command voltage input to servos:  0.22 [V/°] (optical)
+            self.x_max = self.x_angle * 0.22
+            self.y_static = self.y_angle * 0.22
             self.x_delay = 10 / self.x_steps  # hardcoded to a 10 seconds scan:  x_delay[s/step] = (10[s])/(x_steps[step]) # TODO: y is static so x_delay is not dependent on a period --> set this value to something reasonable
-            # UNUSED:   self.x_static, self.y_frequency, self.y_period, y_phase
+            # UNUSED:   self.x_static, self.y_frequency, self.y_period, y_phase, self.y_min, self.y_max
 
         # SCAN TYPE 2) X is static, Y is variable
         elif self.scanType == "Y":
-            # VARIABLES:  # input parameters selected by user (at bottom of file) given is Hz
-            self.y_frequency = self.typeObj.y_frequency
-            self.x_static = self.typeObj.x_static
+            # INPUT VARIABLES:  # parameters selected by user (at bottom of file) given is Hz
+            self.y_frequency = self.scanVariables.y_frequency
             # HARDCODED:
             self.y_waveform = 'sine'
-            # UNUSED:  self.y_static
+            self.x_static = self.x_angle * 0.22  # Command voltage input to servos:  0.22 [V/°] (optical)
+            self.y_min = -self.y_angle * 0.22
+            self.y_max = self.y_angle * 0.22
+            # UNUSED:  self.y_static, self.x_min, self.x_max
 
         #  SCAN TYPE 3) X is variable, Y is variable
         elif self.scanType == "XY":
-            # VARIABLES:  # input parameter selected by user (at bottom of file) given is Hz
-            self.y_frequency = self.typeObj.y_frequency
+            # INPUT VARIABLES:  # parameter selected by user (at bottom of file) given is Hz
+            self.y_frequency = self.scanVariables.y_frequency
             # HARDCODED:
             self.y_waveform = 'sine'
+            self.x_min = -self.x_angle * 0.22  # Command voltage input to servos:  0.22 [V/°] (optical)
+            self.x_max = self.x_angle * 0.22
+            self.y_min = -self.y_angle * 0.22
+            self.y_max = self.y_angle * 0.22
             # UNUSED:   self.x_static, self.y_static
 
         if self.y_waveform == 'sine':  # for scantype "Y" and "XY"
@@ -275,12 +263,6 @@ class T7:
             self.y_phase = np.pi / 2
             self.y_period = 1 / self.y_frequency
             self.x_delay = self.y_period / 2  # time between every X command. Should be half a period (i.e. time for one up sweep)
-
-        # Command voltage input to servos is defined as:  0.22 [V/°] (optical). Input range: ± 5V  which corresponds to ± 22.5°
-        self.x_min = -self.x_angle * 0.22
-        self.x_max = self.x_angle * 0.22
-        self.y_min = -self.y_angle * 0.22
-        self.y_max = self.y_angle * 0.22
 
         # Buffer stream variables:
         self.b_samplesToWrite = self.max_buffer_size  # = how many values we save to buffer stream = y_steps = resolution of one period of sinewave, --> sent to TickDAC --> sent to y servo input
@@ -304,7 +286,7 @@ class T7:
             k = self.x_min
             #x_values.append(k)
             for i in range(self.x_steps):
-                x_values.append(k)
+                x_values.append(round(k, 10))
                 self.single_x_times.append(i * self.x_delay)  # for plotting
                 k += x_step_size
 
@@ -313,7 +295,7 @@ class T7:
         elif self.scanType == 'Y':
             # populating "x_values" list with x_Static a number of times ( == self.x_steps)
             for i in range(self.x_steps):
-                x_values.append(self.x_static)
+                x_values.append(round(self.x_static, 10))
                 self.single_x_times.append(i * self.x_delay)  # for plotting
             return x_values
 
@@ -329,7 +311,7 @@ class T7:
             # in this case: self.y_waveform == 'constant'
             y_vals = []
             for i in range(self.b_samplesToWrite):
-                y_vals.append(self.y_static)
+                y_vals.append(round(self.y_static, 10))
                 self.single_y_times.append(i*self.y_delay)  # for plotting
             return y_vals
 
@@ -353,7 +335,7 @@ class T7:
                     #print(i*self.y_delay, "=?", t_curr)
 
                     y_curr = self.y_max * np.sin((2 * np.pi * self.y_frequency * t_curr) - self.y_phase)
-                    y_values_up.append(y_curr)
+                    y_values_up.append(round(y_curr, 10))
 
             elif self.y_waveform == 'saw':  # WARNING: Do not use this yet!!!
                 y_curr = self.y_min
@@ -366,7 +348,7 @@ class T7:
                     single_y_times_down.append(t_curr + (self.y_period/2))  # for plotting
 
                     y_curr += dy  # linear function from y_min to y_max
-                    y_values_up.append(y_curr)
+                    y_values_up.append(round(y_curr, 10))
 
             elif self.y_waveform == 'custom1':  # WARNING: Do not use this yet!!!
                 print("Custom waveforms are not implemented yet. Setting Y to static with value 0")
@@ -502,11 +484,20 @@ class T7:
     # Step 7) Write y waveform values to stream buffer (memory)
     def prepare_buffer_stream(self):
         # https://labjack.com/pages/support?doc=/datasheets/t-series-datasheet/32-stream-mode-t-series-datasheet/#section-header-two-ttmre
+
+        #File "C:\Users\QNP\Desktop\Galvo Mirror Project\Microscope Python Code for Galvo QS7XY-AG\GalvoScanControl.py", line 489, in prepare_buffer_stream
+        #  ljm.periodicStreamOut(self.handle, self.b_streamOutIndex, self.b_targetAddress, self.b_scanRate, self.b_samplesToWrite, self.y_values)
+        #File "C:\Users\QNP\Desktop\Galvo Mirror Project\Microscope Python Code for Galvo QS7XY-AG\labjack\ljm\ljm.py", line 1568, in periodicStreamOut
+        #  raise LJMError(error)
+        #labjack.ljm.ljm.LJMError: LJM library error code 2614 STREAM_OUT_TARGET_INVALID
+
         try:
             print("Initializing stream out... \n")
+            # params: 1, 0, 30000, 256, 256, [...]
             ljm.periodicStreamOut(self.handle, self.b_streamOutIndex, self.b_targetAddress, self.b_scanRate, self.b_samplesToWrite, self.y_values)
 
         except ljm.LJMError:
+            print("Failed upload buffer vals")
             ljm_stream_util.prepareForExit(self.handle)
             raise
 
@@ -565,14 +556,28 @@ class T7:
 
     # Terminates labjack connection
     def close_labjack_connection(self):
-        time.sleep(2) # don't close too fast, just in case there is still something being transmitted
         print("Closing labjack connection...")
-        err = ljm.close(self.handle)
-        if err is None:
-            print("Closing successful.")
+        if self.handle is None:
+            print("\nT7 was not opened and therefore doesn't need closing")
         else:
-            print("Problem closing T7 device. Error =", err)
-        # ErrorCheck(err, "Problem closing device");
+            time.sleep(1)  # don't close too fast, just in case there is still something being transmitted
+            err = ljm.close(self.handle)
+            if err is None:
+                print("Closing successful.")
+            else:
+                print("Problem closing T7 device. Error =", err)
+
+    def TestWriteToLabJack(self):
+        # TROUBLESHOOTING: TESTING WRITE NAMES TO LABJACK
+        names = ["TDAC0", "TDAC1"]
+        v = np.linspace(0, 0.1, 20)
+
+        for e in v:
+            aValues = [0, e]  # [2.5 V, 12345]
+            err = ljm.eWriteNames(self.handle, len(names), names, aValues)
+            print("Error =", err)
+            time.sleep(0.1)
+            print(e)
 
 
 class Management:
@@ -799,55 +804,50 @@ class Plotting:
         # window.setworldcoordinates(minx, miny, maxx, maxy)
 
 # ____________ MAIN ______________________
-# NOTE: Repeatability = 10 [µrad] ≈ 0.0006 [degrees]   https://www.thorlabs.de/newgrouppage9.cfm?objectgroup_id=14132&pn=QS7XY-AG
-# x_angle =>  max X deflection angle  (mehcanical or optical???)  note: The optical angle is 2 times the mechanical angle
-# y_angle =>  max Y deflection angle  (mehcanical or optical???)
-# x_steps =>  Must be in valid range =~ {10-10000}      WARNING: MAXIMUM X_STEPS == (x_angle)/0.0006
-    #  -->  x_steps = 100    -->   d_angle =~ 0.05 degrees
-    #  -->  x_steps = 1000   -->   d_angle =~ 0.005 degrees
-    #  -->  x_steps = 10000  -->   d_angle =~ 0.0005 degrees
-
-
+"""
+NOTE: Repeatability = 10 [µrad] ≈ 0.0006 [degrees]   https://www.thorlabs.de/newgrouppage9.cfm?objectgroup_id=14132&pn=QS7XY-AG
+    x_angle =>  max X deflection angle  (mechanical or optical???)  note: The optical angle is 2 times the mechanical angle
+    y_angle =>  max Y deflection angle  (mechanical or optical???)
+    x_steps =>  valid range =~ {10-10000}  WARNING: MAXIMUM X_STEPS == (x_angle)/0.0006
+        -->  x_steps = 100    -->   d_angle =~ 0.05 degrees
+        -->  x_steps = 1000   -->   d_angle =~ 0.005 degrees
+        -->  x_steps = 10000  -->   d_angle =~ 0.0005 degrees
+"""
 class X:
     """X is variable, Y is static"""
-    scan_type = "X"  # Do not change (or remove with option 2)
-    filename = "some_filename"
-
-    x_angle = 1
-    y_angle = 1
-    x_steps = 10
-    y_static = 0
-
+    filename = 'some_filename'
+    x_angle = 1     # MAX    X ANGLE:  Valid range = [-22.5, 22.5]
+    y_angle = 1     # STATIC Y ANGLE:  Valid range = [-22.5, 22.5]
+    x_steps = 10    # Valid range =~ {1-10000}  WARNING: MAXIMUM X_STEPS == (x_angle)/0.0006
 
 class Y:
     """X is static, Y is variable"""
-    scan_type = "Y"  # Do not change (or remove with option 2)
-    filename = "some_filename"
-
-    x_angle = 1
-    y_angle = 1
-    x_steps = 10
-    x_static = 0
+    filename = 'some_filename'
+    x_angle = 1     # STATIC X ANGLE:  Valid range = [-22.5, 22.5]
+    y_angle = 1     # MAX    Y ANGLE:  Valid range = [-22.5, 22.5]
+    x_steps = 10    # Valid range =~ {1-10000}  WARNING: MAXIMUM X_STEPS == (x_angle)/0.0006
     y_frequency = 0.5
 
 
 class XY:
     """X is variable, Y is variable"""
-    scan_type = "XY"  # Do not change (or remove with option 2)
-    filename = "some_filename"
-
-    x_angle = 3  # test 22 for example
-    y_angle = 3
-    x_steps = 10
+    filename = 'some_filename'
+    x_angle = 1     # MAX X ANGLE:  Valid range = [-22.5, 22.5]
+    y_angle = 1     # MAX Y ANGLE:  Valid range = [-22.5, 22.5]
+    x_steps = 10    # Valid range =~ {1-10000}  WARNING: MAXIMUM X_STEPS == (x_angle)/0.0006
     y_frequency = 1
-
 
 
 if __name__ == '__main__':
 
     # 1) Initiates labjack class
-    t7 = T7(scanClass=XY(), scanPattern="raster", pingQuTag=False)  # "pingQuTag" previously called "record"
-    # scanPattern --> { "raster" , "lissajous",  "saw-sin" }
+    '''
+    :param scanType:        Defines which scan type class we call, choose from: {'X', 'Y', 'XY'}
+    :param scanPattern:     Defines which scan pattern we want, choose from: {'raster', 'lissajous', 'saw-sin'}  # note: currently only focusing on raster
+    :param pingQuTag:       Bool for whether we want to ping the QuTag with the scan, choose from: { True , False }
+    :param plotting:        Bool for whether we want to plot input data, choose from: { True , False }
+    '''
+    t7 = T7(scanType='XY', scanPattern='raster', pingQuTag=False, plotting=True)   # note: "pingQuTag" previously called "record"
 
     # 2) Prepare and perform scan
     noError = t7.main_galvo_scan()
@@ -865,19 +865,9 @@ if __name__ == '__main__':
         # Plotting.plot_data()
 
     # 4) Terminates labjack connection  (note: labjack device only opened if scan wasn't aborted prematurely)
-    if t7.handle is not None :
-        t7.close_labjack_connection()
-    else:
-        print("\nT7 not opened --> will not be closed")
+    t7.close_labjack_connection()
 
-    # TODO: alternative to decide, we can change call to T7 class as:
-    """
-        OPTION 1: Calling the class as a parameter
-    t7 = T7(param=XY(), scanPattern="raster", pingQuTag=False) 
 
-        OPTION 2: Defining scan type as a string, which in the T7 __init__ calls the appropriate class
-    t7 = T7(param="XY", scanPattern="raster", pingQuTag=False) 
-    """
 """
 Good book: 
 "Experimental Physics: Principles and Practice for the Laboratory"
