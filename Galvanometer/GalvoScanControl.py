@@ -1,9 +1,8 @@
 import time
 from datetime import date, datetime
-#from labjack import ljm   # I think this requires that we have the labjack folder in our dir for access
 from labjack import ljm   # I think this requires that we have the labjack folder in our dir for access
 
-import ljm_stream_util
+#import ljm_stream_util
 import struct
 import socket
 import pickle
@@ -12,11 +11,8 @@ import matplotlib.pyplot as plt
 import os
 import turtle as ttl
 
-print("Using LJM version:", ljm.__version__)
-# Note: in case of problems with labjack library dll
-#   --> is located in C:\Program Files (x86)\LabJack\Drivers
 
-# UPDATED: 17/5-2023
+# UPDATED: 25/5-2023
 
 def getInputVariableClass(scanType):
     # Call appropriate class to get input parameters
@@ -31,83 +27,49 @@ def getInputVariableClass(scanType):
 
 class ErrorChecks:
 
-    def __init__(self, max_voltage, max_x_steps, min_y_freq, max_y_freq, max_sample_rate):
-        # self.abort_scan = False
-        self.max_voltage = max_voltage
-        self.max_x_steps = max_x_steps
-        self.min_y_freq = min_y_freq
-        self.max_y_freq = max_y_freq
-        self.max_sample_rate = max_sample_rate
-
     def check_voltages(self):
+        # max is 5V but this gives a bit of margin, NOTE: val = 0.22*optical angle --> val = 1V is big enough for our scope
+        max_voltage = 4
+
         # Checking that max allowed voltage is not changed. 5V is the absolute maximum allowed, but we give some margins
-        if self.max_voltage > 5:
+        if max_voltage > 4.5:
+            print("Error: to high max voltage, change back to 4.5V")
             t7.abort_scan = True
 
         # CHECKING INPUT VALUES TO SERVOS
         for x_val in t7.x_values:
-            if abs(x_val) > self.max_voltage:
+            if abs(x_val) > max_voltage:
                 print(f"Error: Too large voltage ({x_val}V) found in X list!")
-                # self.abort_scan = True
                 t7.abort_scan = True
-        for y_val in t7.y_values:
-            if abs(y_val) > self.max_voltage:
-                print(f"Error: Too large voltage ({y_val}V) found in Y list!")
-                # self.abort_scan = True
+        for y_up in t7.y_values_up:
+            if abs(y_up) > max_voltage:
+                print(f"Error: Too large voltage ({y_up}V) found in Y up list!")
+                t7.abort_scan = True
+        for y_down in t7.y_values_down:
+            if abs(y_down) > max_voltage:
+                print(f"Error: Too large voltage ({y_down}V) found in Y down list!")
                 t7.abort_scan = True
 
     def check_scan_type(self):
         # CHECKING SCAN TYPES
         if t7.scanType not in ["X", "Y", "XY"]:
             print("Error: Invalid scan type provided!")
-            # self.abort_scan = True
-            t7.abort_scan = True
-
-    def check_x_static(self):
-        # STATIC SCAN STATIC X
-        if self.max_voltage < np.abs(t7.x_static):
-            print(f"Error: x_static = {t7.x_static} is out of bounds!")
-            # self.abort_scan = True
-            t7.abort_scan = True
-
-    def check_y_static(self):
-        # STATIC SCAN STATIC Y
-        if self.max_voltage < np.abs(t7.y_static):
-            print(f"Error: y_static = {t7.y_static} is out of bounds!")
-            # self.abort_scan = True
-            t7.abort_scan = True
-
-    def check_boundaries(self):
-        # CHECKING MIN/MAX VALUES (boundaries)
-        if (self.max_voltage < np.abs(t7.x_min)) or (self.max_voltage < np.abs(t7.x_max)) or (self.max_voltage < np.abs(t7.y_min)) or (self.max_voltage < np.abs(t7.y_max)):
-            print(f"Error: [x_min, x_max] = [{t7.x_min}, {t7.x_max}] or [y_min, y_max] = [{t7.y_min}, {t7.y_max}] is out of bounds!")
-            # self.abort_scan = True
             t7.abort_scan = True
 
     def check_y_frequency(self):
-        # CHECKING Y FREQUENCY
-        if (t7.y_frequency < self.min_y_freq) or (self.max_y_freq < t7.y_frequency):
+        # NOTE: MUST FOLLOW NYQUIST CRITERION --> "Nyquist criterion requires that the sampling frequency be at least twice the highest frequency contained in the signal"
+        max_y_freq = 10000  # TODO: calculate a max frequency
+        min_y_freq = 0.00001  # TODO: calculate a min frequency
+
+        if (t7.y_frequency < min_y_freq) or (max_y_freq < t7.y_frequency):
             print(f"Error: y_frequency = {t7.y_frequency} is out of bounds!")
-            # self.abort_scan = True
             t7.abort_scan = True
 
     def check_x_steps(self):
+        max_x_steps = (t7.x_angle) / 0.0006  # if self.x_angle is optical
         # CHECKING NUMBER OF X STEPS BASED ON REPEATABILITY (= 10 [µrad] ≈ 0.0006 [degrees]) https://www.thorlabs.de/thorproduct.cfm?partnumber=QS7XY-AG
-        if (t7.x_steps < 1) or (t7.x_steps > self.max_x_steps):
+        if (t7.x_steps < 1) or (t7.x_steps > max_x_steps):
             print(f"Error: Too many steps to do in x! (based on repeatability specs)")
-            # self.abort_scan = True
-            t7.abort_scan = True
-
-    def check_samplerate(self):
-        # CHECKING SAMPLE RATE BASED ON:  maxSampleRate = 100000 / numChannels   as we likely have under 10 channels (~6-7)
-        sampleRate = t7.b_scansPerRead
-        if self.max_sample_rate < sampleRate:
-            print(f"Error: Too high sample rate for labjack (given other params)!")
-            # self.abort_scan = True
-            t7.abort_scan = True
-
-        if t7.b_samplesToWrite != len(t7.y_values):
-            print(f"Error: Length of y_values does not match 'samplesToWrite' parameter")
             t7.abort_scan = True
 
 class T7:
@@ -121,15 +83,9 @@ class T7:
     q_start_address = ""        # marks start of scan               # TODO: FILL IN
     q_stop_address = ""         # marks end of scan                 # TODO: FILL IN
     q_step_address = ""         # marks each change in x value      # TODO: FILL IN
-    # Periodic waveform buffer for outputing Y voltage
 
-    b_aScanList = [ljm.nameToAddress("STREAM_OUT0")[0]]   # "STREAM_OUT0" == 4800
-    b_nrAddresses = 1           # only one buffer we use
-    b_targetAddress = ljm.nameToAddress(y_address)[0]      # y_address = 'TDAC0' = 30000  --> fast axis = y axis
-    b_streamOutIndex = 0        # index of: "STREAM_OUT0" I think this says which stream you want to get from (if you have several)
     # TODO: check how many y_values we can fit in a buffer, max 512 (16-bit samples)
     max_buffer_size = 256       # Buffer stream size for y waveform values. --> Becomes resolution of sinewave period waveform == y_steps
-
 
     def __init__(self, scanType, scanPattern, pingQuTag=False, plotting=False):
         """
@@ -138,6 +94,7 @@ class T7:
         :param pingQuTag:       Bool for whether we want to ping the QuTag with the scan { True , False }
         """
         # --------------- ATTRIBUTES ----------------------------------------------------
+
         self.scanVariables = getInputVariableClass(scanType)    # class for {"X", "Y", "XY"}
         self.filename = self.scanVariables.filename
         self.scanType = scanType                                # {"X", "Y", "XY"}
@@ -147,13 +104,16 @@ class T7:
         self.handle = None              # Labjack device handle
         self.abort_scan = False         # Safety bool for parameter check
         self.aAddresses = []            # Scanning plan: list of addresses for all the commands
-        self.aValues = []               # Scanning plan: list of values for all the commands
+        # New solution
+        self.aValuesUp = []
+        self.aValuesDown = []
+
         self.x_values = []              # List for x values that are set during scan
-        self.y_values = []              # List for y values that are set during scan
+        self.y_values_up = []
+        self.y_values_down = []
+
         # --------------- PLOTTING -------------------------------------------------------
         self.plotFigures = plotting
-        self.plt_up_y = []
-        self.plt_down_y = []
         self.single_x_times = []
         self.single_y_times = []
 
@@ -165,8 +125,8 @@ class T7:
 
         # Step 2) Get a list of x and y values given scan parameters
         print("\nStep 2) Generating scan x,y values.")
-        self.x_values = self.get_x_values()
-        self.y_values = self.get_y_values()
+        self.get_x_values()
+        self.get_y_values()
 
         # Step 3) Check all input parameters (and abort if needed)
         print("\nStep 3) Doing safety check on scan parameters.")
@@ -186,27 +146,22 @@ class T7:
 
         #return False  # SAFETY RETURN, TEMP BEFORE WE ACTUALLY CONNECT TO LABJACK
 
-        print("\nStep 4) Opening labjack connection")
         # Step 4) Open communication with labjack handle
-        self.open_labjack_connection()
-
-        # self.TestWriteToLabJack()
+        print("\nStep 4) Opening labjack connection")
+        #self.open_labjack_connection()
 
         # Step 5) Opens communication with qu-tag server
         if self.q_pingQuTag:
             print("\nCreating socket connection with Qutag server.")
             self.socket_connection()
 
-        # Step 6) Populates command list with calculated x values and addresses
-        print("\nStep 6) Populating command list.")
-        self.populate_lists(addr=self.x_address, list_values=self.x_values, t_delay=self.x_delay)
-
-        # Step 7) Fill buffer with sine values to loop over - Configure labjack buffer
-        print("\nStep 7) (not) Filling LJ stream buffer with Y values.")
-        self.prepare_buffer_stream()
+        # Step 6) Populates command list with calculated y values and addresses
+        print("\nStep Populating command list.")
+        # NEW WAY WIHTOUT BUFFER:
+        self.populate_scan_lists()
 
         # Step 8) Initiate start position of galvos
-        print("\nStep 8) (not) Setting start positions of galvos.")
+        print("\nStep 8) Setting start positions of galvos.")
         #self.init_start_positions()
         time.sleep(1)  # wait 1 second to give galvos time to get to start positions
 
@@ -277,7 +232,6 @@ class T7:
     # Step 2) Returns a list of x values that the scan will perform
     def get_x_values(self):
         # Create list for x values (ONLY ONE COLUMN) we send as command to servo motor to set --> units: maybe voltage?
-        x_values = []
 
         # If we want to step x values
         if self.scanType == 'X' or self.scanType == 'XY':
@@ -286,38 +240,33 @@ class T7:
             k = self.x_min
             #x_values.append(k)
             for i in range(self.x_steps):
-                x_values.append(round(k, 10))
+                self.x_values.append(round(k, 10))
                 self.single_x_times.append(i * self.x_delay)  # for plotting
                 k += x_step_size
-
-            return x_values
-
         elif self.scanType == 'Y':
             # populating "x_values" list with x_Static a number of times ( == self.x_steps)
             for i in range(self.x_steps):
-                x_values.append(round(self.x_static, 10))
+                self.x_values.append(round(self.x_static, 10))
                 self.single_x_times.append(i * self.x_delay)  # for plotting
-            return x_values
-
         else:
             print("Error in get x values! Invalid scan type given.")
             self.abort_scan = True
-            return x_values
 
     # Step 2) Returns a list of y values that the scan will perform
     def get_y_values(self):
         # if we are only changing x then the buffer only needs one value --> Y STATIC
         if self.scanType == 'X':
             # in this case: self.y_waveform == 'constant'
-            y_vals = []
-            for i in range(self.b_samplesToWrite):
-                y_vals.append(round(self.y_static, 10))
+            for i in range(int(self.b_samplesToWrite/2)):
+                self.y_values_up.append(round(self.y_static, 10))
                 self.single_y_times.append(i*self.y_delay)  # for plotting
-            return y_vals
+
+            for i in range(int(self.b_samplesToWrite / 2), int(self.b_samplesToWrite)):
+                self.y_values_down.append(round(self.y_static, 10))
+                self.single_y_times.append(i * self.y_delay)  # for plotting
 
         elif self.scanType == 'Y' or self.scanType == 'XY':
             # if Y has periodic waveform:
-            y_values_up = []
             t_curr = 0
             t_step_size = self.y_period / self.b_samplesToWrite
             n_half_period = int(self.b_samplesToWrite/2)
@@ -327,93 +276,43 @@ class T7:
 
             if self.y_waveform == 'sine':
                 for i in range(n_half_period):
-                    #t_curr += t_step_size
                     t_curr = i*self.y_delay
-
                     single_y_times_up.append(t_curr)  # for plotting
                     single_y_times_down.append(t_curr + (self.y_period / 2))  # for plotting
-                    #print(i*self.y_delay, "=?", t_curr)
 
                     y_curr = self.y_max * np.sin((2 * np.pi * self.y_frequency * t_curr) - self.y_phase)
-                    y_values_up.append(round(y_curr, 10))
-
-            elif self.y_waveform == 'saw':  # WARNING: Do not use this yet!!!
-                y_curr = self.y_min
-                n_half_period = int(self.b_samplesToWrite / 2)
-                dy = (self.y_max - self.y_min) / n_half_period
-
-                for i in range(n_half_period):
-                    t_curr += t_step_size
-                    single_y_times_up.append(t_curr)  # for plotting
-                    single_y_times_down.append(t_curr + (self.y_period/2))  # for plotting
-
-                    y_curr += dy  # linear function from y_min to y_max
-                    y_values_up.append(round(y_curr, 10))
-
-            elif self.y_waveform == 'custom1':  # WARNING: Do not use this yet!!!
-                print("Custom waveforms are not implemented yet. Setting Y to static with value 0")
-                return [0]
+                    self.y_values_up.append(round(y_curr, 10))
             else:
                 print("Error defining waveform for Y")
                 self.abort_scan = True
-                return []
+                return
 
-            y_values_down = y_values_up.copy()
-            y_values_down.reverse()
-            print("Y up sweep", y_values_up)
-            print("Y down sweep", y_values_down)
-            y_values = y_values_up + y_values_down  # merge two lists into new list --> this is one period that we will repeat with buffer
-
-            print("We have", len(y_values), "y values, and selected buffersize", self.max_buffer_size)
-
+            self.y_values_down = self.y_values_up.copy()
+            self.y_values_down.reverse()
             self.single_y_times =  single_y_times_up + single_y_times_down   # FOR PLOTTING
-            self.plt_up_y = y_values_up      # FOR PLOTTING
-            self.plt_down_y = y_values_down  # FOR PLOTTING
-
-            return y_values
+            print("Y up sweep  ", self.y_values_up)
+            print("Y down sweep", self.y_values_down)
 
         else:
             print("Error in get_y_values! Invalid scan type given.")
             self.abort_scan = True
-            return []
 
     # Step 3) Error checks
     def auto_check_scan_parameters(self):
-        # TODO: add check for buffer length and ensure there is enough space to write all self.y_values
 
-        # HARDCODED LIMITS WE TEST AGAINST
-        max_x_steps = (self.x_angle) / 0.0006  # if self.x_angle is optical
-        max_sample_rate = 10000  # maxSampleRate = 100000 / numChannels   and we likely have under 10 channels (~6-7)
-        max_voltage = 4  # max is 5V but this gives a bit of margin, NOTE: val = 0.22*optical angle --> val = 1V is big enough for our scope
-
-        # NOTE: MUST FOLLOW NYQUIST CRITERION
-        # "Nyquist criterion requires that the sampling frequency be at least twice the highest frequency contained in the signal"
-        max_y_freq = 10000  # TODO: calculate a max frequency
-        min_y_freq = 0.00001  # TODO: calculate a min frequency
-
-        # initiate error check class
-        err = ErrorChecks(max_voltage, max_x_steps, min_y_freq, max_y_freq, max_sample_rate)
+        # TODO CHECKS/NOTE:
+        #   - TDAC can update it's value once every ~ 1ms (a frequency of 1000Hz) --> consider if this is too low!
+        #       --> self.y_delay > 1  (ms)
 
         # MOST IMPORTANT SO WE DON'T DAMAGE DEVICE
-        err.check_voltages()  # CHECKING INPUT VALUES TO SERVOS
-        err.check_boundaries()  # CHECKING MIN/MAX VALUES
+        ErrorChecks().check_voltages()  # CHECKING INPUT VALUES TO SERVOS
 
         # USEFUL CHECKS TO ENSURE THAT SCAN IS SUCCESSFUL
-        err.check_scan_type()  # CHECKING SCAN TYPES
-        err.check_x_steps()  # CHECKING NUMBER OF X STEPS BASED ON REPEATABILITY
-        err.check_samplerate()  # CHECKING MAX SAMPLE RATE
-
-        # BELOW: ADDITIONAL SCANS THAT ARE "SCANTYPE" SPECIFIC
-        if self.scanType == "X":
-            # variables not used and not checked:  self.y_period
-            err.check_y_static()  # CHECKING SCAN STATIC Y
-
-        if self.scanType == "Y":
-            err.check_x_static()  # CHECKING SCAN STATIC X
-            err.check_y_frequency()  # CHECKING Y FREQUENCY
-
-        if self.scanType == "XY":
-            err.check_y_frequency()  # CHECKING Y FREQUENCY
+        ErrorChecks().check_scan_type()  # CHECKING SCAN TYPES
+        ErrorChecks().check_x_steps()  # CHECKING NUMBER OF X STEPS BASED ON REPEATABILITY
+        #err.check_samplerate()  # CHECKING MAX SAMPLE RATE  # maxSampleRate = 100000 / numChannels   and we likely have under 10 channels (~6-7)
+        if self.scanType in ["Y", "XY"]:
+            ErrorChecks().check_y_frequency()  # CHECKING Y FREQUENCY
 
     # Step 4) Connect to labjack device
     def open_labjack_connection(self):
@@ -456,53 +355,22 @@ class T7:
                 break
 
     # Step 6) Adds x values and qtag pings and other commands to command list
-    def populate_lists(self, addr, list_values, t_delay):
+    def populate_scan_lists(self):
 
-        if self.q_pingQuTag:
-            # Send start marker to qtag (maybe add time delay or other info to qtag)
-            self.aAddresses += [self.q_start_address, self.wait_address, self.q_start_address]
-            self.aValues += [1, self.x_delay, 0]
+        # Add half period y values values to command list
+        # Add delay (can be different delays for different lists) and one value at a time to list
+        for up_val in self.y_values_up:
+            self.aAddresses += [self.y_address, self.wait_address]
+            self.aValuesUp += [up_val, self.y_delay]
 
-        # Add x values to command list
-        for val in list_values:
-            # Add delay (can be different delays for different lists) and one value at a time to list
-            self.aAddresses += [addr, self.wait_address]
-            self.aValues += [val, t_delay]
+        for down_val in self.y_values_down:
+            self.aValuesDown += [down_val, self.y_delay]
 
-        if self.q_pingQuTag:
-            # Send end marker to qtag (maybe add time delay or other info to qtag)
-            self.aAddresses += [self.q_stop_address, self.wait_address, self.q_stop_address]
-            self.aValues += [1, self.x_delay, 0]
+        # PRINTING IN CONSOLE
+        #print(f"\n-------aValuesUp--------|-------aValuesDown------|-----------aAddresses-----------")
+        #for i in range(0, len(self.aAddresses), 2):
+        #    print(f"  {self.aAddresses[i]}: {self.aValuesUp[i]},     {self.aAddresses[i]}: {self.aValuesDown[i]},    {self.aAddresses[i+1]}: {self.aValuesUp[i+1]}")
 
-        print("ADDRESS              VALUE (x or delay)\n-----------------------------------------")
-        for i in range(len(self.aAddresses)):
-            if len(self.aAddresses[i]) == 5:
-                print(self.aAddresses[i], "              ", self.aValues[i])
-            else:
-                print(self.aAddresses[i], "   ", self.aValues[i])
-
-    # Step 7) Write y waveform values to stream buffer (memory)
-    def prepare_buffer_stream(self):
-        # https://labjack.com/pages/support?doc=/datasheets/t-series-datasheet/32-stream-mode-t-series-datasheet/#section-header-two-ttmre
-
-        #File "C:\Users\QNP\Desktop\Galvo Mirror Project\Microscope Python Code for Galvo QS7XY-AG\GalvoScanControl.py", line 489, in prepare_buffer_stream
-        #  ljm.periodicStreamOut(self.handle, self.b_streamOutIndex, self.b_targetAddress, self.b_scanRate, self.b_samplesToWrite, self.y_values)
-        #File "C:\Users\QNP\Desktop\Galvo Mirror Project\Microscope Python Code for Galvo QS7XY-AG\labjack\ljm\ljm.py", line 1568, in periodicStreamOut
-        #  raise LJMError(error)
-        #labjack.ljm.ljm.LJMError: LJM library error code 2614 STREAM_OUT_TARGET_INVALID
-
-        try:
-            print("Initializing stream out... \n")
-            # params: 1, 0, 30000, 256, 256, [...]
-            ljm.periodicStreamOut(self.handle, self.b_streamOutIndex, self.b_targetAddress, self.b_scanRate, self.b_samplesToWrite, self.y_values)
-
-        except ljm.LJMError:
-            print("Failed upload buffer vals")
-            ljm_stream_util.prepareForExit(self.handle)
-            raise
-
-        #err = ljm.periodicStreamOut(self.handle, self.b_streamOutIndex, self.b_targetAddress, self.b_scanRate, self.b_samplesToWrite, self.y_values)
-        #print("Write to buffer error =", err)
 
     # Step 8) Sets sends positional commands to
     def init_start_positions(self):
@@ -524,18 +392,25 @@ class T7:
         start_time = time.time()
 
         # Step 1) BEFORE SCAN: Start buffer stream (y axis galvo will start moving now)
-        err = ljm.eStreamStart(self.handle, self.b_scansPerRead, self.b_nrAddresses, self.b_aScanList, self.b_scanRate)
-        # ErrorCheck(err, "LJM_eStreamStart");
+        if self.q_pingQuTag:
+            # Send start marker to qtag (maybe add time delay or other info to qtag)
+            rc = ljm.eWriteNames(self.handle, 3, [self.q_start_address, self.wait_address, self.q_start_address], [1, self.x_delay, 0])
 
         # Step 2) DO SCAN: Send all scan commands to galvo/servo
-        #rc = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
-        time.sleep(3)
+        # NEW SOLUTION WITHOUT BUFFER:
+        for i in range( 0, len(self.x_values), 2):  # range(start=0, stop=len(self.x_values), step=2):
+            rc = ljm.eWriteNames(self.handle, len(self.aAddresses)+1, self.aAddresses+[self.x_address], self.aValuesUp+[self.x_values[i]])
+            rc = ljm.eWriteNames(self.handle, len(self.aAddresses)+1, self.aAddresses+[self.x_address], self.aValuesDown+[self.x_values[i+1]])
+
         # Step 3) AFTER SCAN: Terminate stream of sine wave. This means that the buffer will stop looping/changing value
-        err = ljm.eStreamStop(self.handle)
-        # ErrorCheck(err, "Problem closing stream");
+        if self.q_pingQuTag:
+            # Send end marker to qtag (maybe add time delay or other info to qtag)
+            rc = ljm.eWriteNames(self.handle, 3, [self.q_stop_address, self.wait_address, self.q_stop_address], [1, self.x_delay, 0])
 
         # Step 4) sends stop commands to galvo/servo by setting voltage from labjack to servos to 0V
         rc = ljm.eWriteNames(self.handle, 2, [self.x_address, self.y_address], [0, 0])
+
+
 
         end_time = time.time()
         print("Actual scan time:", end_time - start_time)
@@ -546,11 +421,9 @@ class T7:
     def sample_feedback_from_buffer(self):
         """After scan is done, we want """
         data = {'t': [], 'x_in': [], 'y_in': [], 'x_out': [], 'y_out': []}
-        data['x_in'] = self.x_values
-        data['y_in'] = self.y_values
-
+        #data['x_in'] = self.x_values
+        # ...
         # TODO: get feedback values from buffer and save them to dict 'data'
-        # https://labjack.com/pages/support/?doc=%2Fsoftware-driver%2Fljm-users-guide%2Festreamstart
         # ljm.eStreamRead
         return data
 
@@ -637,14 +510,21 @@ class Plotting:
 
         all_times, all_x_vals, all_y_vals = self.getAllTimes()
 
+        grid = plt.GridSpec(2, 4, wspace=0.4, hspace=0.3)
+        ax_x_1 = plt.subplot(grid[0, 0])
+        ax_y_1 = plt.subplot(grid[0, 1])
+        ax_x_2 = plt.subplot(grid[1, 0])
+        ax_y_2 = plt.subplot(grid[1, 1])
+        ax_xy = plt.subplot(grid[:, 2:])
+
         # PLOTTING TIMES:
         # self.plot_times(all_times)
         # PLOTTING X:
-        self.plot_x(all_times, all_x_vals)
+        self.plot_x(all_times, all_x_vals, ax_x_1, ax_x_2)
         # PLOTTING Y:
-        self.plot_y(all_times, all_y_vals)
+        self.plot_y(all_times, all_y_vals,  ax_y_1, ax_y_2)
         # PLOTTING X AND Y:
-        self.plot_xy(all_times, all_x_vals, all_y_vals)
+        self.plot_xy(all_times, all_x_vals, all_y_vals,  ax_xy)
 
         plt.show()
 
@@ -658,18 +538,18 @@ class Plotting:
             x_time_offset = t7.single_x_times[i]
             x = t7.x_values[i]
 
-            n_sweep = int(t7.b_samplesToWrite/2)   # int(len(t7.single_y_times)/2)
-            for j in range(n_sweep):  # only for one sweep
+            for j in range(int(t7.b_samplesToWrite/2)):
                 y_time_offset = t7.single_y_times[j]
 
                 if i%2 == 0:
-                    y = t7.y_values[j]
+                    y = t7.y_values_up[j]
                 else:
-                    y = t7.y_values[j+n_sweep]
+                    y = t7.y_values_down[j]
 
                 all_times.append(x_time_offset + y_time_offset)
                 all_x_vals.append(x)
                 all_y_vals.append(y)
+
 
         return all_times, all_x_vals, all_y_vals
 
@@ -695,63 +575,67 @@ class Plotting:
         plt.grid()
         plt.title(f"TOTAL TIME \nScantype={t7.scanType}")
 
-    def plot_x(self, all_times, all_x_vals):
-        plt.figure("X_th")
-        plt.plot(t7.single_x_times, t7.x_values, 'b.')
-        plt.xlabel("time [s]")
-        plt.ylabel("x input voltage [V]")
-        plt.grid()
-        self.maybe_plot_limits(plt_x=True, t_f=t7.single_x_times[-1])
-        plt.title(f"[x]  Iterated step values \nScantype={t7.scanType}")
+    def plot_x(self, all_times, all_x_vals, ax_single, ax_full):
+        #plt.figure("X_th")
+        ax_single.plot(t7.single_x_times, t7.x_values, 'b.')
+        ax_single.set(xlabel="time [s]")
+        ax_single.set(ylabel="x input voltage [V]")
+        #ax_single.set(grid()
+        self.maybe_plot_limits(ax=ax_single, plt_x=True, t_f=t7.single_x_times[-1])
+        ax_single.set(title=f"[x]  Iterated step values \nScantype={t7.scanType}")
 
-        plt.figure("X_sc")
-        plt.plot(all_times, all_x_vals, 'b.')
-        plt.plot(all_times, all_x_vals, 'b--')
-        plt.xlabel("time [s]")
-        plt.ylabel("x input voltage [V]")
-        plt.grid()
-        self.maybe_plot_limits(plt_x=True, t_f=all_times[-1])
-        plt.title(f"[x]  Full scan path \nScantype={t7.scanType}")
+        #plt.figure("X_sc")
+        ax_full.plot(all_times, all_x_vals, 'b.')
+        ax_full.plot(all_times, all_x_vals, 'b--')
+        ax_full.set(xlabel="time [s]")
+        ax_full.set(ylabel="x input voltage [V]")
+        #ax_full.set(grid()
+        self.maybe_plot_limits(ax=ax_full, plt_x=True, t_f=all_times[-1])
+        ax_full.set(title=f"[x]  Full scan path \nScantype={t7.scanType}")
 
-    def plot_y(self, all_times, all_y_vals):
-        plt.figure("Y_th")
-        plt.plot(t7.single_y_times, t7.y_values, 'r')
-        plt.xlabel("time [s]")
-        plt.ylabel("y input voltage [V]")
-        plt.grid()
-        self.maybe_plot_limits(plt_y=True, t_f=t7.single_y_times[-1])
-        plt.title(f"[y]  Values for one period \nScantype={t7.scanType}")
+    def plot_y(self, all_times, all_y_vals, ax_single, ax_full):
+        #plt.figure("Y_th")
+        #plt.plot(t7.single_y_times, t7.y_values_up + t7.y_values_down , 'r')
+        ax_single.plot(t7.single_y_times[:len(t7.y_values_up)], t7.y_values_up , 'r')
+        ax_single.plot(t7.single_y_times[len(t7.y_values_up):], t7.y_values_down , 'b')
+        ax_single.set(xlabel="time [s]")
+        ax_single.set(ylabel="y input voltage [V]")
+        #ax_single.grid()
+        self.maybe_plot_limits(ax=ax_single, plt_y=True, t_f=t7.single_y_times[-1])
+        ax_single.set(title=f"[y]  Values for one period \nScantype={t7.scanType}")
 
-        plt.figure("Y_sc")
-        plt.plot(all_times, all_y_vals, 'r')
-        plt.xlabel("time [s]")
-        plt.ylabel("y input voltage [V]")
-        plt.grid()
-        self.maybe_plot_limits(plt_y=True, t_f=all_times[-1])
-        plt.title(f"[y]  Full scan path \nScantype={t7.scanType}")
+        #plt.figure("Y_sc")
+        ax_full.plot(all_times, all_y_vals, 'r')
+        ax_full.set(xlabel="time [s]")
+        ax_full.set(ylabel="y input voltage [V]")
+        #ax_full.grid()
+        self.maybe_plot_limits(ax=ax_full, plt_y=True, t_f=all_times[-1])
+        ax_full.set(title=f"[y]  Full scan path \nScantype={t7.scanType}")
 
-    def plot_xy(self, all_times, all_x_vals, all_y_vals):
-        plt.figure("XY_sc")
-        plt.plot(all_x_vals, all_y_vals, 'g.')
-        plt.plot(all_x_vals, all_y_vals, 'g--')
-        plt.xlabel("X input voltage [V]")
-        plt.ylabel("Y input voltage [V]")
-        plt.grid()
-        self.maybe_plot_limits(plt_x=True, plt_y=True, t_f=all_times[-1])
-        plt.title(f"[x vs. y]  Full scan path \nScantype={t7.scanType}")
+    def plot_xy(self, all_times, all_x_vals, all_y_vals, ax_full):
+        #plt.figure("XY_sc")
+        ax_full.plot(all_x_vals, all_y_vals, 'g.')
+        ax_full.plot(all_x_vals, all_y_vals, 'g--')
+        ax_full.set(xlabel="X input voltage [V]")
+        ax_full.set(ylabel="Y input voltage [V]")
+        #ax_full.grid()
+        self.maybe_plot_limits(ax=ax_full, plt_x=True, plt_y=True, t_f=all_times[-1])
+        ax_full.set(title=f"[x vs. y]  Full scan path \nScantype={t7.scanType}")
 
-    def maybe_plot_limits(self, t_f, plt_x=False, plt_y=False):
+    def maybe_plot_limits(self, ax, t_f, plt_x=False, plt_y=False):
+        x_max = max(t7.x_values)
+        y_max = max(t7.y_values_up+t7.y_values_down)
 
-        if t7.x_max > 3 or t7.y_max > 2:
+        if x_max > 2.5 or y_max > 2.5:
             if plt_x and plt_y:
-                plt.plot([-5, 5], [-5,-5], 'k--')
-                plt.plot([-5, 5], [5, 5], 'k--')
-                plt.plot([-5, -5], [-5, 5], 'k--')
-                plt.plot([5, 5], [-5, 5], 'k--')
+                ax.plot([-5, 5], [-5,-5], 'k--')
+                ax.plot([-5, 5], [5, 5], 'k--')
+                ax.plot([-5, -5], [-5, 5], 'k--')
+                ax.plot([5, 5], [-5, 5], 'k--')
 
             elif plt_x or plt_y:
-                plt.plot([0, t_f], [-5, -5], 'k--')
-                plt.plot([0, t_f], [5, 5], 'k--')
+                ax.plot([0, t_f], [-5, -5], 'k--')
+                ax.plot([0, t_f], [5, 5], 'k--')
 
     def plot_data(self):
         pass
@@ -823,17 +707,16 @@ class X:
 class Y:
     """X is static, Y is variable"""
     filename = 'some_filename'
-    x_angle = 1     # STATIC X ANGLE:  Valid range = [-22.5, 22.5]
+    x_angle = 3     # STATIC X ANGLE:  Valid range = [-22.5, 22.5]
     y_angle = 1     # MAX    Y ANGLE:  Valid range = [-22.5, 22.5]
     x_steps = 10    # Valid range =~ {1-10000}  WARNING: MAXIMUM X_STEPS == (x_angle)/0.0006
     y_frequency = 0.5
 
-
 class XY:
     """X is variable, Y is variable"""
     filename = 'some_filename'
-    x_angle = 1     # MAX X ANGLE:  Valid range = [-22.5, 22.5]
-    y_angle = 1     # MAX Y ANGLE:  Valid range = [-22.5, 22.5]
+    x_angle = 4     # MAX X ANGLE:  Valid range = [-22.5, 22.5]
+    y_angle = 2     # MAX Y ANGLE:  Valid range = [-22.5, 22.5]
     x_steps = 10    # Valid range =~ {1-10000}  WARNING: MAXIMUM X_STEPS == (x_angle)/0.0006
     y_frequency = 1
 
