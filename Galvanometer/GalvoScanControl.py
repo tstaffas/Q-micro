@@ -524,7 +524,7 @@ class Plotting:
         if t7.scanType == 'X':
             plt.suptitle(f"PARAMETERS:      [scan_type={t7.scanType}]      [x_steps={t7.x_steps}]      [x_angle={t7.x_angle}]      [y_angle={t7.y_angle}]\n ----------------------------------------------------------------------------------------------------------------------------------------------")
         else:
-            plt.suptitle(f"PARAMETERS:      [scan_type={t7.scanType}]      [x_steps={t7.x_steps}]      [x_angle={t7.x_angle}]      [y_angle={t7.y_angle}]      [frequency={t7.scanType}]\n ----------------------------------------------------------------------------------------------------------------------------------------------")
+            plt.suptitle(f"PARAMETERS:      [scan_type={t7.scanType}]      [x_steps={t7.x_steps}]      [x_angle={t7.x_angle}]      [y_angle={t7.y_angle}]      [frequency={t7.y_frequency}]\n ----------------------------------------------------------------------------------------------------------------------------------------------")
 
         ax_x_1 = plt.subplot(grid[0, 0])
         ax_y_1 = plt.subplot(grid[0, 1])
@@ -619,16 +619,16 @@ class Plotting:
         ax_single.legend() #bbox_to_anchor=(0.01, 0.99), loc='upper left', borderaxespad=0.)
         # ax_single.grid()
         self.maybe_plot_limits(ax=ax_single, plt_y=True, t_f=t7.single_y_times[-1])
-        ax_single.set(title=f"[Y vs. time]  \nOne period of Y scan path")
+        ax_single.set(title=f"[Y vs. time]  \nOne period of Y sine wave")
 
         # plt.figure("Y_sc")
         col = 'k'
         halfPeriodIndex = int(t7.b_samplesToWrite/2)
         for i in range(int(2*len(all_y_vals)/t7.b_samplesToWrite)): # how many sweeps we do
             if i%2:
-                col = 'c'
-            else:
                 col = 'b'
+            else:
+                col = 'c'
             ax_full.plot(all_times[i*halfPeriodIndex:(i+1)*halfPeriodIndex], all_y_vals[i*halfPeriodIndex:(i+1)*halfPeriodIndex], col)
 
         ax_full.plot(all_times[0:2], all_y_vals[0:2], 'c', label="Y up sweep")
