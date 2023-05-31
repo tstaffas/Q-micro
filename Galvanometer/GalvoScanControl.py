@@ -25,6 +25,11 @@ def getInputVariableClass(scanType):
     else:
         return None
 
+def clamp(mini, maxi, val):
+    # var = clamp(100, 300, val=20)   -->   max(100, min(20, 300))  = max(100, 20)  = 100
+    # var = clamp(100, 300, val=170)  -->   max(100, min(170, 300)) = max(100, 170) = 170
+    # var = clamp(100, 300, val=500)  -->   max(100, min(500, 300)) = max(100, 300) = 300
+    return max(mini, min(val, maxi))
 
 class ErrorChecks:
 
@@ -86,7 +91,7 @@ class T7:
     q_step_address = ""  # marks each change in x value      # TODO: FILL IN
 
     # TODO: check how many y_values we can fit in a buffer, max 512 (16-bit samples)
-    max_buffer_size = 256  # Buffer stream size for y waveform values. --> Becomes resolution of sinewave period waveform == y_steps
+    #max_buffer_size = 256  # Buffer stream size for y waveform values. --> Becomes resolution of sinewave period waveform == y_steps
 
     def __init__(self, scanType, scanPattern, pingQuTag=False, plotting=False):
         """
@@ -220,12 +225,17 @@ class T7:
             self.y_period = 1 / self.y_frequency
             self.x_delay = self.y_period / (2)  # time between every X command. Should be half a period (i.e. time for one up sweep)
 
+        # BELOW: limits our y_dim to be in the range [200, 300]
+        self.y_dim = clamp(100, 300, val=1000/self.frequency)   
+        #self.y_dim = 200  # maximum 5Hz !!
+        self.b_samplesToWrite = self.y_dim  #TODO: replace all b_samplesToWrite with y_dim!!
+        
         # Buffer stream variables:
-        self.b_samplesToWrite = self.max_buffer_size  # = how many values we save to buffer stream = y_steps = resolution of one period of sinewave, --> sent to TickDAC --> sent to y servo input
-        self.b_scanRate = int(self.b_samplesToWrite / (
-                    2 * self.x_delay))  # scanrate = scans per second = samples per second for one address = (resolution for one sine period)/(one sine period)   NOTE: (2*self.x_delay) = self.y_period (of sinewave)
-        #self.b_scansPerRead = int(
-            #s#elf.b_scanRate / 2)  # NOTE: When performing stream OUT with no stream IN, ScansPerRead input parameter to LJM_eStreamStart is ignored. https://labjack.com/pages/support/?doc=%2Fsoftware-driver%2Fljm-users-guide%2Festreamstart
+        #self.b_samplesToWrite = self.max_buffer_size  # = how many values we save to buffer stream = y_steps = resolution of one period of sinewave, --> sent to TickDAC --> sent to y servo input
+        self.b_scanRate = int(self.b_samplesToWrite / (2 * self.x_delay))  # scanrate = scans per second = samples per second for one address = (resolution for one sine period)/(one sine period)   NOTE: (2*self.x_delay) = self.y_period (of sinewave)
+        #self.b_scansPerRead = int(self.b_scanRate / 2)  # NOTE: When performing stream OUT with no stream IN, ScansPerRead input parameter to LJM_eStreamStart is ignored. https://labjack.com/pages/support/?doc=%2Fsoftware-driver%2Fljm-users-guide%2Festreamstart
+        
+        
         self.y_delay = 1 / (self.b_samplesToWrite / (2 * self.x_delay)) # self.b_scanRate  # time between each y value in stream buffer
         print(self.y_delay)
         # Expected scan time:
@@ -759,6 +769,21 @@ class XY:
 
 if __name__ == '__main__':
 
+    """
+    NOTE:
+    *  TDAC can only update once every 1ms 
+            --> which means that we have an upper limit on y_frequency so scan resolution is not compromised
+            
+    *  Limit:   y_dim ≤ 1000/y_frequency  (where y_dim is how many values we use to define the y sine wave)
+    
+    *  Examples: 
+        * at  1 Hz  we can have at most 1000 sine values 
+        * at  5 Hz  we can have at most  200 sine values  (preferable max frequency)
+        * at 10 Hz  we can have at most  100 sine values  (preferable max frequency)
+        * at 20 Hz  we can have at most   50 sine values 
+        * at 50 Hz  we can have at most   20 sine values  (!! which is the absolute limit of resolution we should even consider !!)
+    """
+    
     # 1) Initiates labjack class
     '''
     :param scanType:        Defines which scan type class we call, choose from: {'X', 'Y', 'XY'}
