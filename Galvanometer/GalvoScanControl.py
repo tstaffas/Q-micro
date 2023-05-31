@@ -226,9 +226,11 @@ class T7:
             self.x_delay = self.y_period / (2)  # time between every X command. Should be half a period (i.e. time for one up sweep)
 
         # BELOW: limits our y_dim to be in the range [200, 300]
-        self.y_dim = clamp(100, 300, val=1000/self.frequency)   
+        self.y_dim = clamp(100, 300, val=1000/self.y_frequency)   
         #self.y_dim = 200  # maximum 5Hz !!
         self.b_samplesToWrite = self.y_dim  #TODO: replace all b_samplesToWrite with y_dim!!
+        print(f"NOTE: Dimension of y values (one period) = {self.b_samplesToWrite}")
+        print(f"y_dim = {self.y_dim} ≤ {1000/self.y_frequency} = 1000/y_frequency")
         
         # Buffer stream variables:
         #self.b_samplesToWrite = self.max_buffer_size  # = how many values we save to buffer stream = y_steps = resolution of one period of sinewave, --> sent to TickDAC --> sent to y servo input
