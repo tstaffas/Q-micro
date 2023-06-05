@@ -1,7 +1,6 @@
 import time
 from datetime import date, datetime
 from labjack import ljm
-# import ljm_stream_util
 import struct
 import socket
 import pickle
@@ -9,8 +8,33 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import turtle as ttl
+from datetime import date
 
-# UPDATED: 31/5-2023
+
+# UPDATED: 01/06-2023
+
+def get_date():
+    '''Returns todays date in the format yymmdd'''
+    r = ''
+    d = date.today()
+    
+    day = d.day
+    if int(day) >= 10:
+        day = str(day)
+    else:
+        day = str(0)+str(day)
+
+    month = d.month
+    if int(month) >= 10:
+        month = str(month)
+    else:
+        month = str(0)+str(month)
+
+    year = str(d.year)[2:4]
+
+    r = year+month+day
+
+    return r
 
 class X:
     """X is variable, Y is static"""
@@ -29,17 +53,20 @@ class Y:
 
 class XY:
     """X is variable, Y is variable"""
-    filename = 'some_filename'
-    x_angle = 1         # max X angle.           Valid range = [-22.5, 22.5]
-    y_angle = 1         # max Y angle.           Valid range = [-22.5, 22.5]
-    x_steps = 10        # how many sweeps we do. Valid range =~ [1, 30000]  --> Example: if x_steps = 100, then delta_angle =~ 0.05 degrees
+    x_angle = 0.3/0.22         # max X angle.           Valid range = [-22.5, 22.5]
+    y_angle = 0.3/0.22         # max Y angle.           Valid range = [-22.5, 22.5]
+    x_steps = 100        # how many sweeps we do. Valid range =~ [1, 30000]  --> Example: if x_steps = 100, then delta_angle =~ 0.05 degrees
     y_frequency = 1
+
+    date = get_date()
+    scan_name = 'lines'
+    filename = f"{scan_name}_xyAngles_{np.round(x_angle,3)}_{np.round(y_angle,3)}_xSteps{x_steps}_yFreq{y_frequency}_{date}"
 
 def main():  #if __name__ == '__main__':
     global t7
 
     # 1) Initiates labjack class
-    t7 = T7(scanType='XY', scanPattern='raster', pingQuTag=False, plotting=True)
+    t7 = T7(scanType='XY', scanPattern='raster', pingQuTag=True, plotting=False)
     # :scanType:     Defines which scan type class we call, choose from: {'X', 'Y', 'XY'}
     # :scanPattern:  Defines which scan pattern we want, choose from: {'raster', 'lissajous', 'saw-sin'}  # note: currently only focusing on raster
     # :pingQuTag:    Bool for whether we want to ping the QuTag with the scan, choose from: { True , False } c# note: "pingQuTag" previously called "record"
@@ -73,8 +100,8 @@ class T7:
     # Physical offset (units: volts). Values according to Theo's notes (31/05-23)
     x_offset = 0.59     # for "TDAC1"
     y_offset = -0.289   # for "TDAC0"
-        # No lenses:      Y (TDAC0) = -0.289 ,  X (TDAC1) = 0.59
-        # With lenses:    Y (TDAC0) = -0.289 ,  X (TDAC1) = 0.59
+    # No lenses:      Y (TDAC0) = -0.289 ,  X (TDAC1) = 0.59
+    # With lenses:    Y (TDAC0) = -0.289 ,  X (TDAC1) = 0.59
 
     def __init__(self, scanType, scanPattern, pingQuTag=False, plotting=False):
         # --------------- ATTRIBUTES ----------------------------------------------------
@@ -158,7 +185,7 @@ class T7:
         self.x_angle = self.scanVariables.x_angle
         self.y_angle = self.scanVariables.y_angle
         self.x_steps = self.scanVariables.x_steps
-        self.y_dim = 200  # Maximum 5Hz !!   #self.y_dim = max(100, min(1000/self.y_frequency, 300))     # BELOW: {clamp} limits our y_dim to be in the range [100, 300]
+        self.y_dim = 100  # Maximum 5Hz !!   #self.y_dim = max(100, min(1000/self.y_frequency, 300))     # BELOW: {clamp} limits our y_dim to be in the range [100, 300]
 
         # SCAN TYPE 1) X is variable, Y is static
         if self.scanType == "X":
@@ -205,7 +232,7 @@ class T7:
         print(f"NOTE: Dimension of y values (one period) = y_dim = {self.y_dim} ≤ {int(1000/self.y_frequency)} = 1000/y_frequency")
 
         # Expected scan time:
-        self.scanTime = self.x_steps * self.x_delay  # Note: it will be slightly higher than this which depends on how fast labjack can iterate between commands
+        self.scanTime = self.x_steps * self.x_delay *1.5 # Note: it will be slightly higher than this which depends on how fast labjack can iterate between commands
         print(f"Expected scan time = {int(self.scanTime)} seconds")
 
     # Step 2) Returns a list of x values that the scan will perform
@@ -222,11 +249,13 @@ class T7:
                 self.x_values.append(round(k+self.x_offset, 10))
                 self.single_x_times.append(i * self.x_delay)  # for plotting
                 k += x_step_size
+                
         elif self.scanType == 'Y':
             # populating "x_values" list with x_Static a number of times ( == self.x_steps)
             for i in range(self.x_steps):
                 self.x_values.append(round(self.x_static+self.x_offset, 10))
                 self.single_x_times.append(i * self.x_delay)  # for plotting
+                
         else:
             print("Error in get x values! Invalid scan type given.")
             self.abort_scan = True
@@ -270,8 +299,8 @@ class T7:
             self.y_values_down = self.y_values_up.copy()
             self.y_values_down.reverse()
             self.single_y_times = single_y_times_up + single_y_times_down  # FOR PLOTTING
-            print("Y up sweep  ", self.y_values_up)
-            print("Y down sweep", self.y_values_down)
+            #print("Y up sweep  ", self.y_values_up)
+            #print("Y down sweep", self.y_values_down)
 
         else:
             print("Error in get_y_values! Invalid scan type given.")
@@ -310,7 +339,7 @@ class T7:
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Establishes a server
         host = socket.gethostname()
-        host = '130.237.35.233'  # IP address of this computer
+        host = '130.237.35.177'  # IP address of this computer
         s.bind((host, 55555))
         s.listen(10)
 
@@ -327,7 +356,7 @@ class T7:
             r1 = clientsocket.send(msg)
 
             # Sends the relevant information
-            msg = {'file': self.filename, 'scantime': self.scanTime}
+            msg = {'file': self.filename, 'scantime': self.scanTime, 'mode': 1} #Mode is the qutag mode to produce a txt(0) or timeres file (1)
             msg = pickle.dumps(msg)
             msg = bytes(f'{len(msg):<{HEADERSIZE}}', 'utf-8') + msg
             r2 = clientsocket.send(msg)
@@ -360,26 +389,15 @@ class T7:
         init_y = self.y_values_up[0]
         rc = ljm.eWriteNames(self.handle, 2, [self.x_address, self.y_address], [init_x, init_y])
 
-        """if self.scanType == "X":
-            rc = ljm.eWriteNames(self.handle, 2, [self.x_address, self.y_address], [self.x_min, self.y_static])
-
-        # start position = (x_static, y_min)
-        elif self.scanType == "Y":
-            rc = ljm.eWriteNames(self.handle, 2, [self.x_address, self.y_address], [self.x_static, self.y_min])
-
-        # start position = (x_min, y_min)
-        elif self.scanType == "XY":
-            rc = ljm.eWriteNames(self.handle, 2, [self.x_address, self.y_address], [self.x_min, self.y_min])
-        """
 
     # Step 8) Actual scan is done here
     def start_scan(self):
 
         # Step 1) BEFORE SCAN: Start buffer stream (y axis galvo will start moving now)
-        if self.q_pingQuTag:
+        #if self.q_pingQuTag:
             # Send start marker to qtag (maybe add time delay or other info to qtag)
-            rc = ljm.eWriteNames(self.handle, 3, [self.q_start_address, self.wait_address, self.q_start_address],
-                                 [1, self.x_delay, 0])
+            #rc = ljm.eWriteNames(self.handle, 3, [self.q_start_address, self.wait_address, self.q_start_address],
+            #                     [1, self.x_delay, 0])
 
         start_time = time.time()
 
@@ -394,13 +412,13 @@ class T7:
         end_time = time.time()
 
         # Step 3) AFTER SCAN: Terminate stream of sine wave. This means that the buffer will stop looping/changing value
-        if self.q_pingQuTag:
+        #if self.q_pingQuTag:
             # Send end marker to qtag (maybe add time delay or other info to qtag)
-            rc = ljm.eWriteNames(self.handle, 3, [self.q_stop_address, self.wait_address, self.q_stop_address],
-                                 [1, self.x_delay, 0])
+            #rc = ljm.eWriteNames(self.handle, 3, [self.q_stop_address, self.wait_address, self.q_stop_address],
+            #                     [1, self.x_delay, 0])
 
         # Step 4) sends stop commands to galvo/servo by setting voltage from labjack to servos to 0V
-        rc = ljm.eWriteNames(self.handle, 2, [self.x_address, self.y_address], [0, 0])
+        rc = ljm.eWriteNames(self.handle, 2, [self.x_address, self.y_address], [self.x_offset, self.y_offset ])
 
         print("Actual scan time:", end_time - start_time)
 
