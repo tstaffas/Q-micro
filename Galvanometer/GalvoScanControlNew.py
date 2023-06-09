@@ -41,15 +41,16 @@ class XY:
     # curr_date = date.today().strftime("%y%m%d")
     # scan_name = 'lines'
     # filename = f"{scan_name}_xyAngles_{np.round(x_angle,3)}_{np.round(y_angle,3)}_xSteps{x_steps}_yFreq{y_frequency}_{curr_date}"
-
+    x_voltage = 0.2
+    y_voltage = 0.2
     x_angle = 0.2 / 0.22  # max X angle.    angle=voltage/0.22       Valid range = [-22.5, 22.5]
     y_angle = 0.2 / 0.22  # max Y angle.    angle=voltage/0.22       Valid range = [-22.5, 22.5]
-    x_steps = 200  # how many sweeps we do. Valid range =~ [1, 30000]  --> Example: if x_steps = 100, then delta_angle =~ 0.05 degrees
-    y_frequency = 1
+    x_steps = 100  # how many sweeps we do. Valid range =~ [1, 30000]  --> Example: if x_steps = 100, then delta_angle =~ 0.05 degrees
+    y_frequency = 0.5
     scan_pattern = 'raster'  # {'raster', 'saw-sine'}
     scan_name = 'lines'
     # -------------
-    filename = f'{scan_name}_xyAngles_{np.round(x_angle, 3)}_{np.round(y_angle, 3)}_xSteps{x_steps}_yFreq{y_frequency}_{date.today().strftime("%y%m%d")}'
+    filename = f'{scan_name}_xyVoltage_({x_voltage}_{y_voltage})_xSteps({x_steps})_yFreq({y_frequency})_yDim({1000/y_frequency})_date({date.today().strftime("%y%m%d")})'
 
 
 def main():  # if __name__ == '__main__':
@@ -185,7 +186,7 @@ class T7:
         self.x_angle = self.scanVariables.x_angle
         self.y_angle = self.scanVariables.y_angle
         self.x_steps = self.scanVariables.x_steps
-        self.y_dim = 100  # Maximum 5Hz !!   #self.y_dim = max(100, min(1000/self.y_frequency, 300))     # BELOW: {clamp} limits our y_dim to be in the range [100, 300]
+        self.y_dim = 1000/self.scanVariables.y_frequency # 100  # Maximum 5Hz !!   #self.y_dim = max(100, min(1000/self.y_frequency, 300))     # BELOW: {clamp} limits our y_dim to be in the range [100, 300]
 
         # SCAN TYPE 1) X is variable, Y is static
         if self.scanType == "X":
@@ -209,10 +210,14 @@ class T7:
         elif self.scanType == "XY":
             # HARDCODED:
             self.y_waveform = 'sine'
-            self.x_min = -self.x_angle * 0.22  # Command voltage input to servos:  0.22 [V/°] (optical)
-            self.x_max = self.x_angle * 0.22
-            self.y_min = -self.y_angle * 0.22
-            self.y_max = self.y_angle * 0.22
+            #self.x_min = -self.x_angle * 0.22  # Command voltage input to servos:  0.22 [V/°] (optical)
+            #self.x_max = self.x_angle * 0.22
+            #self.y_min = -self.y_angle * 0.22
+            #self.y_max = self.y_angle * 0.22
+            self.x_min = -self.scanVariables.x_voltage
+            self.x_max = self.scanVariables.x_voltage
+            self.y_min = -self.scanVariables.y_voltage
+            self.y_max = self.scanVariables.y_voltage
 
         if self.y_waveform == 'sine':  # for scantype "Y" and "XY"
             # INPUT VARIABLES:  # parameter selected by user, given is Hz
