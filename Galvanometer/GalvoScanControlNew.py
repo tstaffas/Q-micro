@@ -48,7 +48,7 @@ class XY:
     x_steps = 100  # how many sweeps we do. Valid range =~ [1, 30000]  --> Example: if x_steps = 100, then delta_angle =~ 0.05 degrees
     y_frequency = 0.5
     scan_pattern = 'raster'  # {'raster', 'saw-sine'}
-    scan_name = 'lines'
+    scan_name = 'digit'
     # -------------
     filename = f'{scan_name}_xyVoltage_({x_voltage}_{y_voltage})_xSteps({x_steps})_yFreq({y_frequency})_yDim({1000/y_frequency})_date({date.today().strftime("%y%m%d")})'
 
@@ -58,8 +58,7 @@ def main():  # if __name__ == '__main__':
 
     # 1) Initiates labjack class
     # t7 = T7(scanType='XY', scanPattern='raster', pingQuTag=True, plotting=False)
-    t7 = T7(scanType='XY', recordScan=False, pingQuTag=False, diagnostics=False, plotting=True)
-
+    t7 = T7(scanType='XY', recordScan=True, pingQuTag=True, diagnostics=False, plotting=False)
     # :scanType:     Defines which scan type class we call, choose from: {'X', 'Y', 'XY'}
     # :scanPattern:  Defines which scan pattern we want, choose from: {'raster', 'lissajous', 'saw-sin'}  # note: currently only focusing on raster
     # :pingQuTag:    Bool for whether we want to ping the QuTag with the scan, choose from: { True , False } c# note: "pingQuTag" previously called "record"
@@ -94,7 +93,7 @@ class T7:
     # Physical offset (units: volts). Values according to Theo's notes (31/05-23)
     x_offset = 0.59  # for "TDAC1"
     y_offset = -0.289  # for "TDAC0"
-
+    # 1000/freq
     # No lenses:      Y (TDAC0) = -0.289 ,  X (TDAC1) = 0.59
     # With lenses:    Y (TDAC0) = -0.289 ,  X (TDAC1) = 0.59
 
@@ -395,7 +394,8 @@ class T7:
         init_x = self.x_values[0]
         init_y = self.y_values_up[0]
         rc = ljm.eWriteNames(self.handle, 2, [self.x_address, self.y_address], [init_x, init_y])
-
+        print("please press 'y' to continue")
+        ans = input()
     # Step 8) Actual scan is done here
     def start_scan(self):
 
