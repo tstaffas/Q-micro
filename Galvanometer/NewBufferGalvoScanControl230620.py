@@ -21,12 +21,13 @@ class raster:
     # USER CAN CHANGE SCAN PARAMETERS BELOW!!
     scan_name = 'digit'     # Info about image being scanned: {'digit', 'lines'}
     sine_freq = 0.5
-    sine_voltage = 3.2
-    step_voltage = 3.2      # galvo angle=voltage/0.22
-    step_dim = 100  # step_dim = 1000/sine_freq  # todo fix???
-    recordScan = False
+    sine_voltage = 0.2   # amplitude
+    step_voltage = 0.02   #[-0.2, 0.2]   # galvo angle=voltage/0.22
+    step_dim = 10  # step_dim = 1000/sine_freq  # todo fix???
+    recordScan = False   # timeres
 
     # -------------
+    zero_input = True  # connects to labjack and sets x and y input to 0 (does not scan if true)
     pingQuTag = True
     diagnostics = False  # timeres vs. txt file
     plotting = False
@@ -41,15 +42,16 @@ class T7:
         self.abort_scan = False  # Safety bool for parameter check
         # --------------- HARDCODED CLASS CONSTANTS BASED ON WIRING -------------
         # Servo and labjack addresses, note: we are using TickDAC
-        self.x_address = "TDAC1"  # --> in "FIO1"  # TODO: change to DAC INSTEAD OF TDAC
+        self.x_address = "DAC1" # "TDAC1"  # --> in "FIO1"  # TODO: change to DAC INSTEAD OF TDAC
         self.y_address = "TDAC0"  # --> in "FIO0"
         self.wait_address = "WAIT_US_BLOCKING"
         # QuTag addresses
-        self.q_start_scan_addr = "FIO5"  # marks start of scan
-        self.q_stop_scan_addr = "FIO5"  # marks end of scan
-        self.q_start_wait_addr = ""  # TODO: FILL IN
-        self.q_stop_wait_addr = ""  # TODO: FILL IN
+        self.q_start_scan_addr = "FIO5"  # == 102?   # marks start of scan
+        self.q_stop_scan_addr = "FIO5"   # == 102?   # marks end of scan
+        #self.q_start_wait_addr = ""      # TODO: use in non buffer solution
+        #self.q_stop_wait_addr = ""       # TODO: use in non buffer solution
         # Physical offset (units: volts). Values according to Theo's notes (31/05-23)
+        # origo
         self.x_offset = 0.59  # for "TDAC1"/"FIO1"
         self.y_offset = -0.289  # for "TDAC0"/"FIO0"
 
@@ -65,16 +67,16 @@ class T7:
         print("\nStep 3) Doing safety check on scan parameters.")
         self.safety_check()
 
-        #plt.figure()
-        #plt.plot(self.sine_values)
-        #plt.plot(self.sine_values, 'r.')
-        #plt.plot(self.step_values)
-        #plt.plot(self.step_values, 'g.')
-        #plt.show()
+        plot_values()
 
         if not self.abort_scan:
             print("\nStep 4) Opening labjack connection")
-            #self.open_labjack_connection()
+            self.open_labjack_connection()
+
+            if self.scanVariables.zero_input:
+                # send 0V to galvo and exit
+                rc = ljm.eWriteNames(self.handle, 2, [self.step_addr, self.sine_addr], [0, 0])
+                return
 
             if self.recordScan:
                 print("\nStep 5) Creating socket connection with Qutag server.")
@@ -82,13 +84,14 @@ class T7:
 
             print("\nStep 6) Populating command list.")
             self.populate_scan_lists()
+            self.fill_buffer_stream()
 
             print("\nStep 7) Setting start positions of galvos.")
             #self.init_start_positions()
             time.sleep(1)
 
             print("\nStep 8) Performing scan...")
-            #self.start_scan()
+            self.start_scan()
 
     # Step 1) Sets all parameters depending on selected scan pattern and scan type
     def get_scan_parameters(self):
@@ -121,6 +124,14 @@ class T7:
         self.sine_phase = np.pi / 2
         self.sine_dim =  self.b_max_buffer_size
         self.sine_delay = self.sine_period / self.sine_dim  # time between each y value in stream buffer     #self.sine_delay = 1 / (self.sine_dim / (2 * self.step_delay))
+        # Buffer stream variables:
+        self.b_samplesToWrite = self.sine_dim  # = how many values we save to buffer stream = y_steps = resolution of one period of sinewave, --> sent to TickDAC --> sent to y servo input
+        self.b_scanRate = int( self.sine_dim / self.sine_period)  # scanrate = scans per second = samples per second for one address = (resolution for one sine period)/(one sine period)   NOTE: (2*self.step_delay) = self.sine_period (of sinewave)
+        self.b_scansPerRead = self.b_scanRate  #int(self.b_scanRate / 2)  # NOTE: When performing stream OUT with no stream IN, ScansPerRead input parameter to LJM_eStreamStart is ignored. https://labjack.com/pages/support/?doc=%2Fsoftware-driver%2Fljm-users-guide%2Festreamstart
+        self.b_targetAddress = ljm.nameToAddress(self.sine_addr)[0]
+        self.b_streamOutIndex = 0  # index of: "STREAM_OUT0" I think this says which stream you want to get from (if you have several)
+        self.b_aScanList = [ljm.nameToAddress("STREAM_OUT0")[0]]  # "STREAM_OUT0" == 4800
+        self.b_nrAddresses = 1
 
         # --------------- STEP ------------------------------
         self.step_amp = self.scanVariables.step_voltage  # voltage = angle*0.22
@@ -227,9 +238,11 @@ class T7:
         # During scan:  # Add step values and pings to command list
         wait_delay = self.step_delay * 1000000  # "Delays for x microseconds. Range is 0-100000
 
-        option = 1 # TODO: ASK THEO WHICH OPTION
+        for step in self.step_values:
+            self.aAddresses += [self.step_addr, self.wait_address]
+            self.aValues += [step, wait_delay]
 
-        if option == 1:
+        '''if option == 1:
             """
             step_addr          ->   step_val
             q_start_wait_addr  ->   1
@@ -265,7 +278,7 @@ class T7:
             """
             for step in self.step_values:
                 self.aAddresses += [self.step_addr, self.q_start_wait_addr, self.q_start_wait_addr, self.wait_address, self.q_stop_wait_addr, self.q_stop_wait_addr]
-                self.aValues += [step, 1, 0, wait_delay, 1, 0]
+                self.aValues += [step, 1, 0, wait_delay, 1, 0]'''
 
         # After: Send end marker to qtag
         if self.q_pingQuTag:
@@ -280,18 +293,9 @@ class T7:
             else:
                 print(self.aAddresses[i], "   ", self.aValues[i])"""
 
-    # Step 7) Write y waveform values to stream buffer (memory)
+    # Step 7) Write sine waveform values to stream buffer (memory)
     def fill_buffer_stream(self):
         # https://labjack.com/pages/support?doc=/datasheets/t-series-datasheet/32-stream-mode-t-series-datasheet/#section-header-two-ttmre
-        # Buffer stream variables:
-        self.b_samplesToWrite = self.sine_dim  # = how many values we save to buffer stream = y_steps = resolution of one period of sinewave, --> sent to TickDAC --> sent to y servo input
-        self.b_scanRate = int(self.sine_dim / self.sine_period)  # scanrate = scans per second = samples per second for one address = (resolution for one sine period)/(one sine period)   NOTE: (2*self.step_delay) = self.sine_period (of sinewave)
-        self.b_scanRate = self.sine_dim / self.sine_period   # --> trying as float
-        self.b_scansPerRead = int(self.b_scanRate / 2)  # NOTE: When performing stream OUT with no stream IN, ScansPerRead input parameter to LJM_eStreamStart is ignored. https://labjack.com/pages/support/?doc=%2Fsoftware-driver%2Fljm-users-guide%2Festreamstart
-        self.b_targetAddress = ljm.nameToAddress(self.sine_addr)[0]
-        self.b_streamOutIndex = 0        # index of: "STREAM_OUT0" I think this says which stream you want to get from (if you have several)
-        self.b_aScanList = [ljm.nameToAddress("STREAM_OUT0")[0]]   # "STREAM_OUT0" == 4800
-        self.b_nrAddresses = 1
 
         try:
             print("Initializing stream out... \n")
@@ -305,22 +309,27 @@ class T7:
 
     # Step 8) Sets sends positional commands to
     def init_start_positions(self):
+        print("Setting first pos")
+
         rc = ljm.eWriteNames(self.handle, 2, [self.step_addr, self.sine_addr], [self.step_values[0], self.sine_values[0]])
-        print("please press 'y' to continue")
+        print("please press 'y' to continue...")
         ans = input()
 
     # Step 9) Actual scan is done here
     def start_scan(self):
         # SCAN: Start buffer stream (y axis galvo will start moving now) and Send all scan commands to galvo/servo
         start_time = time.time()
-        err = ljm.eStreamStart(self.handle, self.b_scansPerRead, self.b_nrAddresses, self.b_aScanList, self.b_scanRate)
+        scanrate = ljm.eStreamStart(self.handle, self.b_scansPerRead, self.b_nrAddresses, self.b_aScanList, self.b_scanRate)
+        print("Scanrate:", self.b_scanRate, "vs.", scanrate)
         rc = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
         err = ljm.eStreamStop(self.handle)
+        print("Steam stop error:", err)
+
         end_time = time.time()
         print("Actual scan time:", end_time - start_time)
 
         # AFTER SCAN: Terminate stream of sine wave. And reset to offset position
-        time.sleep(2)
+        #time.sleep(2)
         self.set_offset_pos()
 
     # Sets galvos to set offset positions
@@ -349,7 +358,7 @@ class ErrorChecks:
 
         # Checking that max allowed voltage is not changed. 5V is the absolute maximum allowed, but we give some margins
         if max_voltage > 4.5:
-            print("Error: to high max voltage, change back to 4.5V")
+            print("Error: to high max voltage, change back to 4V or consult script author")
             t7.abort_scan = True
 
         # CHECKING INPUT VALUES TO SERVOS
@@ -362,6 +371,17 @@ class ErrorChecks:
                 print(f"Error: Too large voltage ({val}V) found in sine list!")
                 t7.abort_scan = True
 
+
+def plot_values():
+    plt.figure()
+    plt.plot(t7.sine_values)
+    plt.plot(t7.sine_values, 'r.', label="sine values (in buffer)")
+    plt.plot(t7.step_values)
+    plt.plot(t7.step_values, 'g.',  label="step values ")
+    plt.legend()
+    plt.xlabel("index")
+    plt.ylabel("command voltage")
+    plt.show()
 
 # 1) Initiates labjack class
 t7 = T7()
