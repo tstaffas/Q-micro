@@ -22,13 +22,13 @@ class raster:
     scan_name = 'digit'     # Info about image being scanned: {'digit', 'lines'}
     sine_freq = 0.5
     sine_voltage = 0.2   # amplitude
-    step_voltage = 0.02   #[-0.2, 0.2]   # galvo angle=voltage/0.22
+    step_voltage = 0.2   #[-0.2, 0.2]   # galvo angle=voltage/0.22
     step_dim = 10  # step_dim = 1000/sine_freq  # todo fix???
     recordScan = False   # timeres
 
     # -------------
-    zero_input = True  # connects to labjack and sets x and y input to 0 (does not scan if true)
-    pingQuTag = True
+    zero_input = False  # connects to labjack and sets x and y input to 0 (does not scan if true)
+    pingQuTag = False #True
     diagnostics = False  # timeres vs. txt file
     plotting = False
     currdate = date.today().strftime("%y%m%d")
@@ -42,7 +42,7 @@ class T7:
         self.abort_scan = False  # Safety bool for parameter check
         # --------------- HARDCODED CLASS CONSTANTS BASED ON WIRING -------------
         # Servo and labjack addresses, note: we are using TickDAC
-        self.x_address = "DAC1" # "TDAC1"  # --> in "FIO1"  # TODO: change to DAC INSTEAD OF TDAC
+        self.x_address = "DAC1" # before: "TDAC1", now: "DAC1" to use buffer
         self.y_address = "TDAC0"  # --> in "FIO0"
         self.wait_address = "WAIT_US_BLOCKING"
         # QuTag addresses
@@ -67,7 +67,7 @@ class T7:
         print("\nStep 3) Doing safety check on scan parameters.")
         self.safety_check()
 
-        plot_values()
+        #plot_values()
 
         if not self.abort_scan:
             print("\nStep 4) Opening labjack connection")
@@ -84,10 +84,11 @@ class T7:
 
             print("\nStep 6) Populating command list.")
             self.populate_scan_lists()
+            #self.populate_scan_lists_PARTIAL()
             self.fill_buffer_stream()
 
             print("\nStep 7) Setting start positions of galvos.")
-            #self.init_start_positions()
+            self.init_start_positions()
             time.sleep(1)
 
             print("\nStep 8) Performing scan...")
@@ -140,6 +141,8 @@ class T7:
 
         # Expected scan time:
         # TODO: CHECK THAT EST. SCANTIME IS STILL CORRECT
+        print("Sine -->  delay:", self.sine_delay, ", dim:", self.sine_dim, ", period:", self.sine_period)
+        print("Step -->  delay:", self.step_delay, ", dim:", self.step_dim, ", sine period:", self.sine_period)
         self.scanTime = self.step_dim * self.step_delay * 1.5  # Note: it will be slightly higher than this which depends on how fast labjack can iterate between commands
         print(f"Expected scan time = {int(self.scanTime)} seconds")
 
@@ -236,62 +239,60 @@ class T7:
             self.aValues += [1, 1, 0]
 
         # During scan:  # Add step values and pings to command list
-        wait_delay = self.step_delay * 1000000  # "Delays for x microseconds. Range is 0-100000
+        #wait_delay = self.step_delay * 1000000  # "Delays for x microseconds. Range is 0-100000
+        wait_delay = 0.1 * 1000000  # "Delays for x microseconds. Range is 0-100000
+        print("Compare:", round(self.step_delay/0.1, 6), "?=", int(self.step_delay/0.1))
+        print("total delay:", round(self.step_delay, 6))
+        print("covered delay:", round(0.1*int(self.step_delay/0.1), 6))
+        remainingDelay = ((self.step_delay/0.1) - int(self.step_delay/0.1)) * 0.1 * 1000000
+        print("remaining delay=", round(self.step_delay - (0.1*int(self.step_delay/0.1)),6))
 
+        #print("STEP ADDR --> STEP VAL       |   WAIT ADDR --> WAIT VALUE")
         for step in self.step_values:
-            self.aAddresses += [self.step_addr, self.wait_address]
-            self.aValues += [step, wait_delay]
-
-        '''if option == 1:
-            """
-            step_addr          ->   step_val
-            q_start_wait_addr  ->   1
-            wait_address       ->   wait_delay
-            q_stop_wait_addr   ->   1
-            """
-            for step in self.step_values:
-                self.aAddresses += [self.step_addr, self.q_start_wait_addr, self.wait_address, self.q_stop_wait_addr]
-                self.aValues += [step, 1, wait_delay, 1]
-
-        elif option == 2:
-            self.q_step_wait_addr = ""  # -->  Move to init() if used
-            """
-            step_addr          ->   step_val
-            q_step_wait_addr   ->   1
-            wait_address       ->   wait_delay
-            q_step_wait_addr   ->   0
-            """
-            for step in self.step_values:
-                self.aAddresses += [self.step_addr, self.q_step_wait_addr, self.wait_address, self.q_step_wait_addr]
-                self.aValues += [step, 1, wait_delay, 0]
-
-        elif option == 3:
-            self.q_start_wait_addr = ""  # -->  Move to init() if used
-            self.q_stop_wait_addr = ""   # -->  Move to init() if used
-            """
-            step_addr           ->   step_val
-            q_start_wait_addr   ->   1
-            q_start_wait_addr   ->   0
-            wait_address,       ->   wait_delay
-            q_stop_wait_addr    ->   1
-            q_stop_wait_addr    ->   0
-            """
-            for step in self.step_values:
-                self.aAddresses += [self.step_addr, self.q_start_wait_addr, self.q_start_wait_addr, self.wait_address, self.q_stop_wait_addr, self.q_stop_wait_addr]
-                self.aValues += [step, 1, 0, wait_delay, 1, 0]'''
+            #self.aAddresses += [self.step_addr, self.wait_address]
+            #self.aValues += [step, wait_delay]
+            self.aAddresses += [self.step_addr]
+            self.aValues += [step]
+            for i in range(int(self.step_delay/0.1)):
+                self.aAddresses += [self.wait_address]
+                self.aValues += [wait_delay]
+            if remainingDelay > 0:
+                self.aAddresses += [self.wait_address]
+                self.aValues += [remainingDelay]
+            #print(self.step_addr, " -->  ", step, "  |  ",  self.wait_address,  " -->  ",wait_delay, "...")
 
         # After: Send end marker to qtag
         if self.q_pingQuTag:
             self.aAddresses += [self.q_stop_scan_addr, self.wait_address, self.q_stop_scan_addr]
             self.aValues += [1, 1, 0]
 
-        """
-        print("ADDRESS              VALUE (x or delay)\n-----------------------------------------")
-        for i in range(len(self.aAddresses)):
-            if len(self.aAddresses[i]) == 5:
-                print(self.aAddresses[i], "              ", self.aValues[i])
-            else:
-                print(self.aAddresses[i], "   ", self.aValues[i])"""
+    def populate_scan_lists_PARTIAL(self):
+        #self.step_delay = self.step_delay*0.2  # <--- 0.25 or higher weight gives error when f=1
+        # During scan:  # Add step values and pings to command list
+        self.step_delay = self.step_delay/5
+        wait_delay = self.step_delay * 1000000  # "Delays for x microseconds. Range is 0-100000
+
+        print("WriteNames List:")
+        print("TDAC0 = Step = Y, step delay =", self.step_delay, "s")
+        print("STEP ADDR --> STEP VAL       |   WAIT ADDR --> WAIT VALUE")
+        for step in self.step_values:
+            self.aAddresses += [self.step_addr, self.wait_address, self.wait_address, self.wait_address, self.wait_address, self.wait_address]
+            self.aValues += [step, wait_delay, wait_delay, wait_delay, wait_delay, wait_delay ]
+            # self.aAddresses += [self.step_addr, self.wait_address]
+            # self.aValues += [step, wait_delay]
+            print(self.step_addr, " -->  ", step, "  |  ",  self.wait_address,  " -->  ",wait_delay)
+
+    def populate_scan_lists_ORIGINAL(self):
+        # self.step_delay = self.step_delay*0.2  # <--- 0.25 or higher weight gives error when f=1
+        # During scan:  # Add step values and pings to command list
+        wait_delay = self.step_delay * 1000000  # "Delays for x microseconds. Range is 0-100000
+        print("WriteNames List:")
+        print("TDAC0 = Step = Y, step delay =", self.step_delay, "s")
+        print("STEP ADDR --> STEP VAL       |   WAIT ADDR --> WAIT VALUE")
+        for step in self.step_values:
+            self.aAddresses += [self.step_addr, self.wait_address]
+            self.aValues += [step, wait_delay]
+            print(self.step_addr, " -->  ", step, "  |  ", self.wait_address, " -->  ", wait_delay)
 
     # Step 7) Write sine waveform values to stream buffer (memory)
     def fill_buffer_stream(self):
@@ -312,25 +313,65 @@ class T7:
         print("Setting first pos")
 
         rc = ljm.eWriteNames(self.handle, 2, [self.step_addr, self.sine_addr], [self.step_values[0], self.sine_values[0]])
-        print("please press 'y' to continue...")
-        ans = input()
+        print("Init step, sine:", self.step_values[0],", ",  self.sine_values[0])
+        #print("Init step, sine:", self.step_offset,", ",  self.sine_offset)
+        #print("please press 'y' to continue...")
+        #ans = input()
 
     # Step 9) Actual scan is done here
     def start_scan(self):
         # SCAN: Start buffer stream (y axis galvo will start moving now) and Send all scan commands to galvo/servo
+        """
+        labjack.ljm.ljm.LJMError: Address 61590, LJM library error code 2407 SYSTEM_WAIT_TOO_LONG
+            --> problem is not the qutag pings, but instead the wait time during the scan
+        """
         start_time = time.time()
-        scanrate = ljm.eStreamStart(self.handle, self.b_scansPerRead, self.b_nrAddresses, self.b_aScanList, self.b_scanRate)
-        print("Scanrate:", self.b_scanRate, "vs.", scanrate)
-        rc = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
-        err = ljm.eStreamStop(self.handle)
-        print("Steam stop error:", err)
-
+        #self.onlyStep() # Y   #self.onlyStepPARTIAL()
+        #self.onlySine()  # X
+        self.bothSineStep() #XY
         end_time = time.time()
         print("Actual scan time:", end_time - start_time)
 
         # AFTER SCAN: Terminate stream of sine wave. And reset to offset position
         #time.sleep(2)
         self.set_offset_pos()
+
+    def onlyStepPARTIAL(self):
+
+        if self.q_pingQuTag:
+            bf = ljm.eWriteNames(self.handle, 3, [self.q_start_scan_addr, self.wait_address, self.q_start_scan_addr], [1, 1, 0])
+            print("Start ping error:", bf)
+
+        rc = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
+        print("WriteNames error:", rc)
+
+        # After: Send end marker to qtag
+        if self.q_pingQuTag:
+            af = ljm.eWriteNames(self.handle, 3, [self.q_stop_scan_addr, self.wait_address, self.q_stop_scan_addr], [1, 1, 0])
+            print("End ping error:", af)
+
+    def onlyStep(self):
+        rc = ljm.eWriteNames(self.handle, 1, [self.sine_addr], [self.sine_offset])
+        rc = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
+        print("WriteNames error:", rc)
+
+    def onlySine(self):
+        rc = ljm.eWriteNames(self.handle, 1, [self.step_addr], [self.step_offset])
+
+        scanRate = ljm.eStreamStart(self.handle, self.b_scansPerRead, self.b_nrAddresses, self.b_aScanList, self.b_scanRate)
+        print("Scanrate:", self.b_scanRate, "vs.", scanRate)
+        print("Waiting 8 seconds...")
+        time.sleep(8)
+        err = ljm.eStreamStop(self.handle)
+        print("Steam stop error:", err)
+
+    def bothSineStep(self):
+        scanrate = ljm.eStreamStart(self.handle, self.b_scansPerRead, self.b_nrAddresses, self.b_aScanList, self.b_scanRate)
+        rc = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
+        err = ljm.eStreamStop(self.handle)
+        print("Scanrate:", self.b_scanRate, "vs.", scanrate)
+        print("Steam stop error:", err)
+        print("WriteNames error:", rc)
 
     # Sets galvos to set offset positions
     def set_offset_pos(self):
@@ -342,6 +383,7 @@ class T7:
         if self.handle is None:
             print("\nT7 was not opened and therefore doesn't need closing")
         else:
+            rc = ljm.eWriteNames(self.handle, 2, [self.x_address, self.y_address], [0, 0])
             time.sleep(1)  # don't close too fast, just in case there is still something being transmitted
             err = ljm.close(self.handle)
             if err is None:
