@@ -19,16 +19,16 @@ class raster:
     # step_galvo = 'Y'
 
     # USER CAN CHANGE SCAN PARAMETERS BELOW!!
-    scan_name = 'digit'     # Info about image being scanned: {'digit', 'lines'}
+    scan_name = 'figure_8_full' # 'three_lines'     # Info about image being scanned: {'digit', 'lines'}
     sine_freq = 0.5
-    sine_voltage = 0.2   # amplitude
-    step_voltage = 0.2   #[-0.2, 0.2]   # galvo angle=voltage/0.22
-    step_dim = 10  # step_dim = 1000/sine_freq  # todo fix???
-    recordScan = False   # timeres
+    sine_voltage = 0.2   # amplitude, max value = 0.58
+    step_voltage = 0.3   #[-0.2, 0.2]   # galvo angle=voltage/0.22
+    step_dim = 100  # step_dim = 1000/sine_freq  # todo fix???
+    recordScan = True   # timeres
 
     # -------------
     zero_input = False  # connects to labjack and sets x and y input to 0 (does not scan if true)
-    pingQuTag = False #True
+    pingQuTag = True     #True
     diagnostics = False  # timeres vs. txt file
     plotting = False
     currdate = date.today().strftime("%y%m%d")
@@ -165,7 +165,7 @@ class T7:
         t_curr = 0
         for i in range(self.sine_dim):
             t_curr = i * self.sine_delay
-            val = self.step_amp * np.sin((2 * np.pi * self.sine_freq * t_curr) - self.sine_phase)
+            val = self.sine_amp * np.sin((2 * np.pi * self.sine_freq * t_curr) - self.sine_phase)
             self.sine_times.append(t_curr)  # for plotting
             self.sine_values.append(round(val + self.sine_offset, 10))  # adding offset
 
@@ -383,7 +383,7 @@ class T7:
         if self.handle is None:
             print("\nT7 was not opened and therefore doesn't need closing")
         else:
-            rc = ljm.eWriteNames(self.handle, 2, [self.x_address, self.y_address], [0, 0])
+            rc = ljm.eWriteNames(self.handle, 2, [self.x_address, self.y_address], [self.x_offset, self.y_offset])
             time.sleep(1)  # don't close too fast, just in case there is still something being transmitted
             err = ljm.close(self.handle)
             if err is None:
