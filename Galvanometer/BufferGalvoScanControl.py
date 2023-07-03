@@ -5,34 +5,32 @@ import pickle
 import numpy as np
 from datetime import date
 import matplotlib.pyplot as plt
-
 #import ljm_stream_util
 
-# UPDATED: 19/06-2023
+# UPDATED: 03 July 2023
 # NOTE: THIS IS A SIMPLER VERSION ONLY FOR RASTER TO TEST NEW METHOD (X IS SINE, Y IS STEP)
 # TODO: check max frequency for sine values sent from buffer (given that we want to send out 256 values in half a period)
 # TODO: Note: if max frequency allows it, our current upper limit for frequency is 500 Hz. (T/2 >= 1ms, T >= 2ms, 1/f >= 2/1000 s, 500 >= f)
 
 # USER CAN CHANGE SCAN PARAMETERS IN CLASS BELOW!!
 class raster:
-    # sine_galvo = 'X'
-    # step_galvo = 'Y'
+    # sine_galvo = 'X',  step_galvo = 'Y'
 
     # USER CAN CHANGE SCAN PARAMETERS BELOW!!
-    scan_name = 'compare_freq_figure_8' # 'three_lines'     # Info about image being scanned: {'digit', 'lines'}
-    sine_freq = 1 # 0.5-2.5
-    sine_voltage = 0.3   # amplitude, max value = 0.58
-    step_voltage = 0.3   #[-0.2, 0.2]   # galvo angle=voltage/0.22
-    step_dim = 100  # step_dim = 1000/sine_freq  # todo fix???
-    recordScan = True   # timeres
+    scan_name = 'digit_8' # 'three_lines'     # Info about image being scanned: {'digit', 'lines'}
+    sine_freq = 10
+    sine_voltage = 0.3      # amplitude, max value = 0.58  # galvo angle=voltage/0.22
+    step_voltage = 0.3      # +- max and min voltages for stepping # galvo angle=voltage/0.22
+    step_dim = 100          # step_dim = 1000/sine_freq  # todo???
+    recordScan = True       # to connect to qutag
 
-    # -------------
-    pingQuTag = True     #True
-    diagnostics = False  # timeres file when False vs. txt file when True
+    # -----Extra params that can be changed for debugging--------
+    pingQuTag = True
+    diagnostics = False     # timeres file when False vs. txt file when True
     plotting = False
-    currdate = date.today().strftime("%y%m%d")
-    currtime = time.strftime("%Hh%Mm", time.localtime())
-    filename = f'{scan_name}_sineAmp_({sine_voltage})_sineFreq({sine_freq})_stepDim(_{step_dim})_stepAmp_({step_voltage})_date({currdate})_time({currtime})'
+    currDate = date.today().strftime("%y%m%d")
+    currTime = time.strftime("%Hh%Mm", time.localtime())
+    filename = f'{scan_name}_sineAmp_({sine_voltage})_sineFreq({sine_freq})_stepDim(_{step_dim})_stepAmp_({step_voltage})_date({currDate})_time({currTime})'
 
 # TODO: FILL IN NEW ADDRESSES
 class T7:
@@ -45,11 +43,14 @@ class T7:
         self.y_address = "TDAC0"  # --> in "FIO0"
         self.wait_address = "WAIT_US_BLOCKING"
         # QuTag addresses
-        self.q_start_scan_addr = "FIO5"  # == 102?   # marks start of scan
-        self.q_stop_scan_addr = "FIO5"   # == 102?   # marks end of scan
-        # Physical offset (units: volts). Values according to Theo's notes (31/05-23)
-        # origo:
-        self.x_offset = 0.59  # for "TDAC1"/"FIO1"
+        self.q_start_scan_addr = "FIO5"     # == 102?   # marks start of scan
+        self.q_end_scan_addr = "FIO5"       # == 102?   # marks end of scan
+        self.q_start_sweep_addr = ""    # == ?      # marks start of sine sweep row  # TODO!!!
+        self.q_end_sweep_addr = ""      # == ?      # marks end of sine sweep row    # TODO!!!
+        self.q_sweep_addr = "" # IF WE DON'T WANT ABOVE
+
+        # Physical offset due to linearization of system (units: volts).
+        self.x_offset = 0.59    # for "DAC1"
         self.y_offset = -0.289  # for "TDAC0"/"FIO0"
 
     # MAIN FUNCTION THAT PREPARES AND PERFORMS SCAN
@@ -83,6 +84,7 @@ class T7:
             self.start_scan()
 
     # Step 1) Sets all parameters depending on selected scan pattern and scan type
+    # TODO: GO OVER AND DOUBLE CHECK (03/07-23)
     def get_scan_parameters(self):
         # --------------- HARDCODED FOR THIS SIMPLER METHOD ------------------------------
         self.sine_addr = self.x_address
@@ -128,15 +130,14 @@ class T7:
         self.step_delay = self.sine_period / 2  # time between every X command. Should be half a period (i.e. time for one up sweep)
 
         # Expected scan time:
-        # TODO: CHECK THAT EST. SCANTIME IS STILL CORRECT
-        print("Sine -->  delay:", self.sine_delay, ", dim:", self.sine_dim, ", period:", self.sine_period)
+        print("Sine -->  delay:", self.sine_delay, ", dim:", self.sine_dim, ", sine period:", self.sine_period)
         print("Step -->  delay:", self.step_delay, ", dim:", self.step_dim, ", sine period:", self.sine_period)
-        self.scanTime = self.step_dim * self.step_delay # * 1.5  # Note: it will be slightly higher than this which depends on how fast labjack can iterate between commands
+        self.scanTime = self.step_dim * self.step_delay * 1.5  # Note: it will be slightly higher than this which depends on how fast labjack can iterate between commands
 
     # Step 2) Returns a list of step values that the scan will perform
-    # TODO: CHECK THAT --> len(self.step_values) == self.step_dim
-    # TODO: CHECK THAT CORRECT DELAY IS USED AND CORRECT VALUES GIVEN
     def get_step_values(self):
+        # TODO: CHECK THAT --> len(self.step_values) == self.step_dim
+        # TODO: CHECK THAT CORRECT DELAY IS USED AND CORRECT VALUES GIVEN
         # populating "step_values" list with discrete values
         step_size = (2*self.step_amp) / (self.step_dim - 1)  # step size of our x values
         k = -self.step_amp
@@ -146,10 +147,8 @@ class T7:
             k += step_size
 
     # Step 2) Returns a list of sine values that the scan will perform
-    # TODO: CHECK THAT THIS WORKS!
     def get_sine_values(self): # sine waveform
         # Change compared to before: now we don't ensure exactly symmetrical sine values for up/down sweeps.
-        t_curr = 0
         for i in range(self.sine_dim):
             t_curr = i * self.sine_delay
             val = self.sine_amp * np.sin((2 * np.pi * self.sine_freq * t_curr) - self.sine_phase)
@@ -157,12 +156,10 @@ class T7:
             self.sine_values.append(round(val + self.sine_offset, 10))  # adding offset
 
     # Step 3) Error checks
-    # TODO: CHECK THAT THIS STILL WORKS
     def safety_check(self):
-        # MOST IMPORTANT SO WE DON'T DAMAGE DEVICE:
+        # TODO: CHECK THAT THIS STILL WORKS
+        # MOST IMPORTANT SO WE DON'T DAMAGE DEVICE WITH TOO HIGH VOLTAGE:
         ErrorChecks().check_voltages()
-        # ...  more checks can be added here
-
         # Check to abort
         if self.abort_scan:
             print("Error check failed. Aborting scan.")
@@ -178,11 +175,10 @@ class T7:
               f"Max bytes per MB: {info[5]} \n")
 
     # Step 5) Connect to qu_tag
-    # TODO: CHECK THAT HOST ADDRESS IS CORRECT!!
     def socket_connection(self):
+        # TODO: CLEAN UP LATER
         """ Sets up a server ot communciate to the qutag computer to start a measurement
             Sends the file and scan time to the computer"""
-
         HEADERSIZE = 10
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Establishes a server
         #host = socket.gethostname()
@@ -218,73 +214,134 @@ class T7:
                 break
 
     # Step 6) Adds x values and qtag pings and other commands to command list
-    # TODO: CHECK THAT ALL STEP PINGS ARE PLACED AS INTENDED, ASK THEO WHICH OPTION
     def populate_scan_lists(self):
-        # Before: Send start marker to qtag
+        # Calculate residual delay
+        wait_delay = 0.1 * 1000000  # wait_delay = self.step_delay * 1000000   # "Delays for x microseconds. Range is 0-100000
+        remainingDelay = ((self.step_delay/0.1) - int(self.step_delay/0.1)) * 0.1 * 1000000
+        print("Compare:", round(self.step_delay/0.1, 6), "?=", int(self.step_delay/0.1))
+        print("total delay:", round(self.step_delay, 6))
+        print("covered delay:", round(0.1*int(self.step_delay/0.1), 6))
+        print("remaining delay=", round(self.step_delay - (0.1*int(self.step_delay/0.1)),6), "?=", remainingDelay)
+
+        # Before scan: Add qtag start marker
         if self.q_pingQuTag:
             self.aAddresses += [self.q_start_scan_addr, self.wait_address, self.q_start_scan_addr]
             self.aValues += [1, 1, 0]
 
         # During scan:  # Add step values and pings to command list
-        #wait_delay = self.step_delay * 1000000  # "Delays for x microseconds. Range is 0-100000
-        wait_delay = 0.1 * 1000000  # "Delays for x microseconds. Range is 0-100000
-        print("Compare:", round(self.step_delay/0.1, 6), "?=", int(self.step_delay/0.1))
-        print("total delay:", round(self.step_delay, 6))
-        print("covered delay:", round(0.1*int(self.step_delay/0.1), 6))
-        remainingDelay = ((self.step_delay/0.1) - int(self.step_delay/0.1)) * 0.1 * 1000000
-        print("remaining delay=", round(self.step_delay - (0.1*int(self.step_delay/0.1)),6))
-
-        #print("STEP ADDR --> STEP VAL       |   WAIT ADDR --> WAIT VALUE")
-        for step in self.step_values:
-            #self.aAddresses += [self.step_addr, self.wait_address]
-            #self.aValues += [step, wait_delay]
-            self.aAddresses += [self.step_addr]
-            self.aValues += [step]
-            for i in range(int(self.step_delay/0.1)):
-                self.aAddresses += [self.wait_address]
-                self.aValues += [wait_delay]
-            if remainingDelay > 0:
-                self.aAddresses += [self.wait_address]
-                self.aValues += [remainingDelay]
-            #print(self.step_addr, " -->  ", step, "  |  ",  self.wait_address,  " -->  ",wait_delay, "...")
+        self.addScanMarkers_1_step(wait_delay, remainingDelay)        # TODO: ask if we want two repeating markers as we do at start and end of scan?
 
         # After: Send end marker to qtag
         if self.q_pingQuTag:
-            self.aAddresses += [self.q_stop_scan_addr, self.wait_address, self.q_stop_scan_addr]
+            self.aAddresses += [self.q_end_scan_addr, self.wait_address, self.q_end_scan_addr]
             self.aValues += [1, 1, 0]
 
-    def populate_scan_lists_PARTIAL(self):
-        #self.step_delay = self.step_delay*0.2  # <--- 0.25 or higher weight gives error when f=1
-        # During scan:  # Add step values and pings to command list
-        self.step_delay = self.step_delay/5
-        wait_delay = self.step_delay * 1000000  # "Delays for x microseconds. Range is 0-100000
 
-        print("WriteNames List:")
-        print("TDAC0 = Step = Y, step delay =", self.step_delay, "s")
-        print("STEP ADDR --> STEP VAL       |   WAIT ADDR --> WAIT VALUE")
+    # CANDIDATE: PING ON OFF BEFORE AND AFTER WAITING
+    def addScanMarkers_1_wait(self, wait_delay, remainingDelay):
         for step in self.step_values:
-            self.aAddresses += [self.step_addr, self.wait_address, self.wait_address, self.wait_address, self.wait_address, self.wait_address]
-            self.aValues += [step, wait_delay, wait_delay, wait_delay, wait_delay, wait_delay ]
-            # self.aAddresses += [self.step_addr, self.wait_address]
-            # self.aValues += [step, wait_delay]
-            print(self.step_addr, " -->  ", step, "  |  ",  self.wait_address,  " -->  ",wait_delay)
+            # Add step value and "start marker"
+            self.aAddresses += [self.step_addr]
+            self.aValues += [step]
 
-    def populate_scan_lists_ORIGINAL(self):
-        # self.step_delay = self.step_delay*0.2  # <--- 0.25 or higher weight gives error when f=1
-        # During scan:  # Add step values and pings to command list
-        wait_delay = self.step_delay * 1000000  # "Delays for x microseconds. Range is 0-100000
-        print("WriteNames List:")
-        print("TDAC0 = Step = Y, step delay =", self.step_delay, "s")
-        print("STEP ADDR --> STEP VAL       |   WAIT ADDR --> WAIT VALUE")
+            self.aAddresses += [self.q_start_sweep_addr,  self.q_start_sweep_addr]
+            self.aValues += [1, 0]
+
+            self.addWaitDelay(wait_delay, remainingDelay)
+
+            self.aAddresses += [self.q_end_sweep_addr, self.q_end_sweep_addr]
+            self.aValues += [1, 0]
+
+    # CANDIDATE: CANDIDATE LIKE WAIT ABOVE, WITH ADDED DELTA DELAY
+    def addScanMarkers_2_wait(self, wait_delay, remainingDelay):
+        delta = 1 # OR SOME DELAY
+
         for step in self.step_values:
-            self.aAddresses += [self.step_addr, self.wait_address]
-            self.aValues += [step, wait_delay]
-            print(self.step_addr, " -->  ", step, "  |  ", self.wait_address, " -->  ", wait_delay)
+            self.aAddresses += [self.step_addr]
+            self.aValues += [step]
+
+            self.aAddresses += [self.q_start_sweep_addr,  self.wait_address, self.q_start_sweep_addr]
+            self.aValues += [1, delta, 0]
+
+            self.addWaitDelay(wait_delay, remainingDelay)
+
+            self.aAddresses += [self.q_end_sweep_addr,  self.wait_address, self.q_end_sweep_addr]
+            self.aValues += [1, delta, 0]
+
+    # CANDIDATE: PING ON OFF BEFORE AND AFTER STEPPING
+    def addScanMarkers_1_step(self, wait_delay, remainingDelay):
+        for step in self.step_values:
+            # Add step value and "start marker"
+            self.aAddresses += [self.q_start_sweep_addr, self.q_start_sweep_addr]
+            self.aValues += [1, 0]
+
+            self.aAddresses += [self.step_addr]
+            self.aValues += [step]
+
+            self.aAddresses += [self.q_end_sweep_addr, self.q_end_sweep_addr]  # note: not using end sweep address
+            self.aValues += [1, 0]
+
+            self.addWaitDelay(wait_delay, remainingDelay)
+
+    # CANDIDATE: CANDIDATE LIKE STEP ABOVE, WITH ADDED DELTA DELAY
+    def addScanMarkers_2_step(self, wait_delay, remainingDelay):
+        delta = 1 # OR SOME DELAY   # Delay in microseconds. Range is 0-100000
+
+        for step in self.step_values:
+            # Add step value and "start marker"
+            self.aAddresses += [self.q_start_sweep_addr,  self.wait_address, self.q_start_sweep_addr]
+            self.aValues += [1, delta, 0]
+
+            self.aAddresses += [self.step_addr]
+            self.aValues += [step]
+
+            self.aAddresses += [self.q_end_sweep_addr,  self.wait_address, self.q_end_sweep_addr]  # note: not using end sweep address
+            self.aValues += [1, delta, 0]
+
+            self.addWaitDelay(wait_delay, remainingDelay)
+
+    # NOT LIKELY CANDIDATE: PING (to same address) ON BEFORE WAIT AND OFF AFTER WAIT
+    def addScanMarkers_3_wait(self, wait_delay, remainingDelay):
+        for step in self.step_values:
+            # Add step value and "start marker"
+            self.aAddresses += [self.step_addr]
+            self.aValues += [step]
+
+            self.aAddresses += [self.q_sweep_addr]
+            self.aValues += [1]
+
+            self.addWaitDelay(wait_delay, remainingDelay)
+
+            self.aAddresses += [self.q_sweep_addr]  # note: not using end sweep address
+            self.aValues += [0]
+    # NOT LIKELY CANDIDATE: PING (to same address) ON BEFORE STEP AND OFF AFTER STEP
+    def addScanMarkers_3_step(self, wait_delay, remainingDelay):
+        for step in self.step_values:
+            self.aAddresses += [self.q_sweep_addr]
+            self.aValues += [1]
+
+            self.aAddresses += [self.step_addr]
+            self.aValues += [step]
+
+            self.aAddresses += [self.q_sweep_addr]  # note: not using end sweep address
+            self.aValues += [0]
+
+            self.addWaitDelay(wait_delay, remainingDelay)
+
+    def addWaitDelay(self, wait_delay, remainingDelay):
+        # TODO: CHECK THAT RANGE INT ROUNDING DOESN'T MESS WITH TOTAL DELAY --> COUNT OR MAKE "int(self.step_delay / 0.1)" something we use to calculate the remaining delay
+        # Add as many 0.1s delays as we can fit
+        for i in range(int(self.step_delay / 0.1)):
+            self.aAddresses += [self.wait_address]
+            self.aValues += [wait_delay]
+        # Add any residual delay
+        if remainingDelay > 0:
+            self.aAddresses += [self.wait_address]
+            self.aValues += [remainingDelay]
 
     # Step 7) Write sine waveform values to stream buffer (memory)
     def fill_buffer_stream(self):
         # https://labjack.com/pages/support?doc=/datasheets/t-series-datasheet/32-stream-mode-t-series-datasheet/#section-header-two-ttmre
-
         try:
             print("Initializing stream out... \n")
             err = ljm.periodicStreamOut(self.handle, self.b_streamOutIndex, self.b_targetAddress, self.b_scanRate, self.b_samplesToWrite, self.sine_values)
@@ -297,70 +354,30 @@ class T7:
 
     # Step 8) Sets sends positional commands to
     def init_start_positions(self):
-        print("Setting first pos")
-
         rc = ljm.eWriteNames(self.handle, 2, [self.step_addr, self.sine_addr], [self.step_values[0], self.sine_values[0]])
-        print("Init step, sine:", self.step_values[0],", ",  self.sine_values[0])
-        #print("Init step, sine:", self.step_offset,", ",  self.sine_offset)
-        #print("please press 'y' to continue...")
-        #ans = input()
+        print("Setting start positions for Step and Sine values:", self.step_values[0],", ",  self.sine_values[0])
 
     # Step 9) Actual scan is done here
     def start_scan(self):
-        # SCAN: Start buffer stream (y axis galvo will start moving now) and Send all scan commands to galvo/servo
-        """
-        labjack.ljm.ljm.LJMError: Address 61590, LJM library error code 2407 SYSTEM_WAIT_TOO_LONG
-            --> problem is not the qutag pings, but instead the wait time during the scan
+        """ SCAN:
+        --> Start buffer stream (y axis galvo will start moving now) and Send all scan commands to galvo/servo
+        --> Send all stepping and ping values
+        --> Stop Buffer
+        --> Reset position to origo/offset
         """
         print(f"Expected scan time = {int(self.scanTime)} seconds")
 
         start_time = time.time()
-        #self.onlyStep() # Y   #self.onlyStepPARTIAL()
-        #self.onlySine()  # X
-        self.bothSineStep() #XY
+        scanRate = ljm.eStreamStart(self.handle, self.b_scansPerRead, self.b_nrAddresses, self.b_aScanList, self.b_scanRate)
+        rc = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
+        err = ljm.eStreamStop(self.handle)
         end_time = time.time()
-        print("Actual scan time:", end_time - start_time)
-
-        # AFTER SCAN: Terminate stream of sine wave. And reset to offset position
-        #time.sleep(2)
         self.set_offset_pos()
 
-    def onlyStepPARTIAL(self):
-
-        if self.q_pingQuTag:
-            bf = ljm.eWriteNames(self.handle, 3, [self.q_start_scan_addr, self.wait_address, self.q_start_scan_addr], [1, 1, 0])
-            print("Start ping error:", bf)
-
-        rc = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
-        print("WriteNames error:", rc)
-
-        # After: Send end marker to qtag
-        if self.q_pingQuTag:
-            af = ljm.eWriteNames(self.handle, 3, [self.q_stop_scan_addr, self.wait_address, self.q_stop_scan_addr], [1, 1, 0])
-            print("End ping error:", af)
-
-    def onlyStep(self):
-        rc = ljm.eWriteNames(self.handle, 1, [self.sine_addr], [self.sine_offset])
-        rc = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
-        print("WriteNames error:", rc)
-
-    def onlySine(self):
-        rc = ljm.eWriteNames(self.handle, 1, [self.step_addr], [self.step_offset])
-
-        scanRate = ljm.eStreamStart(self.handle, self.b_scansPerRead, self.b_nrAddresses, self.b_aScanList, self.b_scanRate)
-        print("Scanrate:", self.b_scanRate, "vs.", scanRate)
-        print("Waiting 8 seconds...")
-        time.sleep(8)
-        err = ljm.eStreamStop(self.handle)
-        print("Steam stop error:", err)
-
-    def bothSineStep(self):
-        scanrate = ljm.eStreamStart(self.handle, self.b_scansPerRead, self.b_nrAddresses, self.b_aScanList, self.b_scanRate)
-        rc = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
-        err = ljm.eStreamStop(self.handle)
-        print("Scanrate:", self.b_scanRate, "vs.", scanrate)
-        print("Steam stop error:", err)
-        print("WriteNames error:", rc)
+        print("Actual scan time:", end_time - start_time)
+        print("Scan Rate:", self.b_scanRate, "vs.", scanRate)
+        print("Steam stop error (sine wave):", err)
+        print("WriteNames error (stepping):", rc)
 
     # Sets galvos to set offset positions
     def set_offset_pos(self):
@@ -382,7 +399,6 @@ class T7:
 
 # TODO: CHECK THAT ERROR CHECK STILL WORKS
 class ErrorChecks:
-
     def check_voltages(self):
         # max is 5V but this gives a bit of margin, NOTE: val = 0.22*optical angle --> val = 1V is big enough for our scope
         max_voltage = 4
@@ -392,16 +408,20 @@ class ErrorChecks:
             print("Error: to high max voltage, change back to 4V or consult script author")
             t7.abort_scan = True
 
-        # CHECKING INPUT VALUES TO SERVOS
         for step in t7.step_values:
+            # CHECKING INPUT VALUES TO SERVO, MAX ALLOWED IS 5V, WE HAVE 4V FOR MARGINS
             if abs(step) > max_voltage:
                 print(f"Error: Too large voltage ({step}V) found in step list!")
                 t7.abort_scan = True
         for val in t7.sine_values:
+            # CHECKING INPUT VALUES TO SERVO, MAX ALLOWED IS 5V, WE HAVE 4V FOR MARGINS
             if abs(val) > max_voltage:
                 print(f"Error: Too large voltage ({val}V) found in sine list!")
                 t7.abort_scan = True
-
+            # CHECKING INPUT VALUES TO SENT VIA TDAC, ONLY POSITIVE VALUES ALLOWED
+            if val <= 0:
+                print(f"Error: Negative voltage ({val}V) found in list for TDAC!")
+                t7.abort_scan = True
 
 def plot_values():
     plt.figure()
