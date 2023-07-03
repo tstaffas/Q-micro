@@ -19,21 +19,20 @@ class raster:
     # step_galvo = 'Y'
 
     # USER CAN CHANGE SCAN PARAMETERS BELOW!!
-    scan_name = 'figure_8_full' # 'three_lines'     # Info about image being scanned: {'digit', 'lines'}
-    sine_freq = 0.5
-    sine_voltage = 0.2   # amplitude, max value = 0.58
+    scan_name = 'compare_freq_figure_8' # 'three_lines'     # Info about image being scanned: {'digit', 'lines'}
+    sine_freq = 1 # 0.5-2.5
+    sine_voltage = 0.3   # amplitude, max value = 0.58
     step_voltage = 0.3   #[-0.2, 0.2]   # galvo angle=voltage/0.22
     step_dim = 100  # step_dim = 1000/sine_freq  # todo fix???
     recordScan = True   # timeres
 
     # -------------
-    zero_input = False  # connects to labjack and sets x and y input to 0 (does not scan if true)
     pingQuTag = True     #True
-    diagnostics = False  # timeres vs. txt file
+    diagnostics = False  # timeres file when False vs. txt file when True
     plotting = False
     currdate = date.today().strftime("%y%m%d")
     currtime = time.strftime("%Hh%Mm", time.localtime())
-    filename = f'{scan_name}_sineAmp_({sine_voltage})_sineFreq({sine_freq})_stepDim(_{step_dim})_date({currdate})_time({currtime})'
+    filename = f'{scan_name}_sineAmp_({sine_voltage})_sineFreq({sine_freq})_stepDim(_{step_dim})_stepAmp_({step_voltage})_date({currdate})_time({currtime})'
 
 # TODO: FILL IN NEW ADDRESSES
 class T7:
@@ -48,46 +47,35 @@ class T7:
         # QuTag addresses
         self.q_start_scan_addr = "FIO5"  # == 102?   # marks start of scan
         self.q_stop_scan_addr = "FIO5"   # == 102?   # marks end of scan
-        #self.q_start_wait_addr = ""      # TODO: use in non buffer solution
-        #self.q_stop_wait_addr = ""       # TODO: use in non buffer solution
         # Physical offset (units: volts). Values according to Theo's notes (31/05-23)
-        # origo
+        # origo:
         self.x_offset = 0.59  # for "TDAC1"/"FIO1"
         self.y_offset = -0.289  # for "TDAC0"/"FIO0"
 
     # MAIN FUNCTION THAT PREPARES AND PERFORMS SCAN
     def main_galvo_scan(self):
-        print("\nStep 1) Defining scan parameters.")
+        #print("\nStep 1) Defining scan parameters.")
         self.get_scan_parameters()
-
-        print("\nStep 2) Generating scan x,y values.")
+        #print("\nStep 2) Generating scan x,y values.")
         self.get_step_values()
         self.get_sine_values()
-
         print("\nStep 3) Doing safety check on scan parameters.")
         self.safety_check()
-
-        #plot_values()
-
+        if self.scanVariables.plotting:
+            plot_values()
         if not self.abort_scan:
             print("\nStep 4) Opening labjack connection")
             self.open_labjack_connection()
-
-            if self.scanVariables.zero_input:
-                # send 0V to galvo and exit
-                rc = ljm.eWriteNames(self.handle, 2, [self.step_addr, self.sine_addr], [0, 0])
-                return
 
             if self.recordScan:
                 print("\nStep 5) Creating socket connection with Qutag server.")
                 self.socket_connection()
 
-            print("\nStep 6) Populating command list.")
+            #print("\nStep 6) Populating command list.")
             self.populate_scan_lists()
-            #self.populate_scan_lists_PARTIAL()
             self.fill_buffer_stream()
 
-            print("\nStep 7) Setting start positions of galvos.")
+            #print("\nStep 7) Setting start positions of galvos.")
             self.init_start_positions()
             time.sleep(1)
 
@@ -143,8 +131,7 @@ class T7:
         # TODO: CHECK THAT EST. SCANTIME IS STILL CORRECT
         print("Sine -->  delay:", self.sine_delay, ", dim:", self.sine_dim, ", period:", self.sine_period)
         print("Step -->  delay:", self.step_delay, ", dim:", self.step_dim, ", sine period:", self.sine_period)
-        self.scanTime = self.step_dim * self.step_delay * 1.5  # Note: it will be slightly higher than this which depends on how fast labjack can iterate between commands
-        print(f"Expected scan time = {int(self.scanTime)} seconds")
+        self.scanTime = self.step_dim * self.step_delay # * 1.5  # Note: it will be slightly higher than this which depends on how fast labjack can iterate between commands
 
     # Step 2) Returns a list of step values that the scan will perform
     # TODO: CHECK THAT --> len(self.step_values) == self.step_dim
@@ -325,6 +312,8 @@ class T7:
         labjack.ljm.ljm.LJMError: Address 61590, LJM library error code 2407 SYSTEM_WAIT_TOO_LONG
             --> problem is not the qutag pings, but instead the wait time during the scan
         """
+        print(f"Expected scan time = {int(self.scanTime)} seconds")
+
         start_time = time.time()
         #self.onlyStep() # Y   #self.onlyStepPARTIAL()
         #self.onlySine()  # X
