@@ -51,6 +51,7 @@ class T7:
         self.y_address = "TDAC2" # MOVED TDAC TO PORTS FIO2 FIO3 TO TEST TRIGGER      #"TDAC0"      # TDAC via LJ port "FIO0"
         # QuTag addresses: DISABLED UNTIL THEO MOVES MARKERS
         self.q_M102_addr = "FIO4"     # marker channel = 102, LJ port FIO2
+        # IMPORTANT! IF WE USE MARKERS 103 OR 100, ADD THEM TO FINALCHECK() FUNCTION!
         #self.q_M103_addr = "FIO5"     # marker channel = 100, LJ port FIO3
         #self.q_M100_addr = "FIO6"     # marker channel = 103, LJ port FIO4
         self.q_M101_addr = "FIO7"     # marker channel = 101, LJ port FIO5
@@ -373,7 +374,7 @@ class T7:
                     print("ERROR. VALUE TOO BIG")
                 self.abort_scan = True
 
-            if self.aAddresses[i] == self.q_M101_addr:
+            if (self.aAddresses[i] == self.q_M101_addr) or (self.aAddresses[i] == self.q_M102_addr):
                 if self.aValues[i] != 0 and self.aValues[i] != 1:
                     print("ERROR. QUTAG PING VALUE ERROR")
                     self.abort_scan = True
