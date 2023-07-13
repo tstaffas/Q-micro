@@ -20,21 +20,22 @@ class raster:
     # sine_galvo = 'X',  step_galvo = 'Y'
 
     # USER CAN CHANGE SCAN PARAMETERS BELOW!!
-    scan_name = 'digit_8' # 'three_lines'     # Info about image being scanned: {'digit', 'lines'}
-    sine_freq = 0.5
+    scan_name = 'digit_8_double_markers'     # Info about image being scanned: {'digit', 'lines'}
+    sine_freq = 10
     sine_voltage = 0.3      # amplitude, max value = 0.58  # galvo angle=voltage/0.22
     step_voltage = 0.3      # +- max and min voltages for stepping # galvo angle=voltage/0.22
-    step_dim = 10          # step_dim = 1000/sine_freq  # todo???
-    recordScan = False       # to connect to qutag
-
+    step_dim = 100          # step_dim = 1000/sine_freq  # todo???
+    recordScan = True       # to connect to qutag
+    ping1 = True    # marker before step
+    ping2 = True    # marker after step
     # -----Extra params that can be changed for debugging--------
-    pingQuTag = False
+    pingQuTag = True
     useTrigger = True
 
     diagnostics = False     # timeres file when False vs. txt file when True
     plotting = False
     currDate = date.today().strftime("%y%m%d")
-    currTime = time.strftime("%Hh%Mm", time.localtime())
+    currTime = time.strftime("%Hh%Mm%Ss", time.localtime())
     filename = f'{scan_name}_sineAmp_({sine_voltage})_sineFreq({sine_freq})_stepDim(_{step_dim})_stepAmp_({step_voltage})_date({currDate})_time({currTime})'
 
 
@@ -49,10 +50,10 @@ class T7:
         self.x_address = "DAC1"       # Values sent from periodic buffer (which is not compatable with TDAC)
         self.y_address = "TDAC2" # MOVED TDAC TO PORTS FIO2 FIO3 TO TEST TRIGGER      #"TDAC0"      # TDAC via LJ port "FIO0"
         # QuTag addresses: DISABLED UNTIL THEO MOVES MARKERS
-        #self.q_M102_addr = "DIO2"     # marker channel = 102, LJ port FIO2
-        #self.q_M100_addr = "FIO3"     # marker channel = 100, LJ port FIO3
-        #self.q_M103_addr = "FIO4"     # marker channel = 103, LJ port FIO4
-        #self.q_M101_addr = "FIO5"     # marker channel = 101, LJ port FIO5
+        self.q_M102_addr = "FIO4"     # marker channel = 102, LJ port FIO2
+        #self.q_M103_addr = "FIO5"     # marker channel = 100, LJ port FIO3
+        #self.q_M100_addr = "FIO6"     # marker channel = 103, LJ port FIO4
+        self.q_M101_addr = "FIO7"     # marker channel = 101, LJ port FIO5
         
         # Buffer stream addresses
         # https://labjack.com/pages/support?doc=/datasheets/t-series-datasheet/32-stream-mode-t-series-datasheet/#section-header-two-kmwnd
@@ -116,6 +117,8 @@ class T7:
         self.diagnostics = self.scanVariables.diagnostics
         self.plotFigures = self.scanVariables.plotting  # bool if we want to plot theoretical
         self.useTrigger = self.scanVariables.useTrigger
+        self.ping1 = self.scanVariables.ping1  # marker before step
+        self.ping2 =  self.scanVariables.ping2  # marker after step
         # --------------- PLACEHOLDER VALUES --------------------------------------------
         # List of x and y values, and lists sent to Labjack:
         self.step_values = []       # values to step through
@@ -241,6 +244,7 @@ class T7:
             self.aAddresses += [self.wait_address]
             self.aValues += [self.sine_delay*1000000]
 
+
     # Step 6) Adds x values and qtag pings and other commands to command list
     # TODO: make sure that "self.tr_source_addr" starts with 0V before we set up the trigger
     # TODO: Check that the trigger is set to the falling edge, or coordinate a correct pulse/edge
@@ -261,20 +265,18 @@ class T7:
 
         for step in self.step_values:
             # Add "step marker"
-            if self.q_pingQuTag:
-                #self.aAddresses += [self.q_M101_addr, self.q_M101_addr]
-                #self.aValues += [1, 0]
-                pass
+            if self.q_pingQuTag and self.ping1:
+                self.aAddresses += [self.q_M101_addr, self.q_M101_addr]
+                self.aValues += [1, 0]
 
             # Add step value
             self.aAddresses += [self.step_addr]
             self.aValues += [step]
 
-            if self.q_pingQuTag:
+            if self.q_pingQuTag and self.ping2:
                 # Add "step marker"
-                #self.aAddresses += [self.q_M101_addr, self.q_M101_addr]  # note: not using end sweep address
-                #self.aValues += [1, 0]
-                pass
+                self.aAddresses += [self.q_M102_addr, self.q_M102_addr]  # note: not using end sweep address
+                self.aValues += [1, 0]
 
             # Add wait delay for half a period
             self.addWaitDelay()
@@ -305,24 +307,20 @@ class T7:
 
     # TODO: make sure constants are imported
     def configure_stream_trigger(self):
-
+        print("Configuring trigger")
         ljm.eWriteName(self.handle, "STREAM_TRIGGER_INDEX", 0) # disabling triggered stream
         ljm.eWriteName(self.handle, "STREAM_CLOCK_SOURCE", 0)  # Enabling internally-clocked stream.
         ljm.eWriteName(self.handle, "STREAM_RESOLUTION_INDEX", 0)
         ljm.eWriteName(self.handle, "STREAM_SETTLING_US", 0)
         ljm.eWriteName(self.handle, "AIN_ALL_RANGE", 0)
         ljm.eWriteName(self.handle, "AIN_ALL_NEGATIVE_CH", ljm.constants.GND)
- 
         # ----
-    
         # Configure LJM for unpredictable stream timing. By default, LJM will time out with an error while waiting for the stream trigger to occur.       
         # note: in the C++ code this part comes here, but in the python version it comes just before streamstart
         ljm.writeLibraryConfigS(ljm.constants.STREAM_SCANS_RETURN, ljm.constants.STREAM_SCANS_RETURN_ALL_OR_NONE)
         ljm.writeLibraryConfigS(ljm.constants.STREAM_RECEIVE_TIMEOUT_MS, 0)
-
         # ----
         # https://labjack.com/pages/support?doc=/datasheets/t-series-datasheet/132-dio-extended-features-t-series-datasheet/
-
         # Define which address trigger is. Example:  2000 sets DIO0 / FIO0 as the stream trigger
         ljm.eWriteName(self.handle, "STREAM_TRIGGER_INDEX", ljm.nameToAddress(self.tr_sink_addr)[0])
         self.DIO_EF_12_setup()  # CONDITIONAL RESET
@@ -331,23 +329,18 @@ class T7:
     def DIO_EF_12_setup(self):
         # Clear any previous settings on triggerName's Extended Feature registers. Must be value 0 during configuration
         ljm.eWriteName(self.handle, "%s_EF_ENABLE" % self.tr_sink_addr, 0)
-
         # Choose which extended feature to set
         ljm.eWriteName(self.handle, "%s_EF_INDEX" % self.tr_sink_addr, 12)
-
         # Set reset options, see bitmask options
         ljm.eWriteName(self.handle, "%s_EF_CONFIG_A" % self.tr_sink_addr, 0)  # 0: Falling edges , 1: Rising edges (<-i think, depends on bitmask)
-
         # NOTE: Not needed for our implementation: --> DIO2_EF_CONFIG_B,  DIO2_EF_CONFIG_C
-
         # Turn on the DIO-EF  --> Enable trigger once configs are done
         ljm.eWriteName(self.handle, "%s_EF_ENABLE" % self.tr_sink_addr, 1)
 
     # Step 8) Sets sends positional commands to
     def init_start_positions(self):
         rc = ljm.eWriteNames(self.handle, 2, [self.step_addr, self.sine_addr], [self.step_values[0], self.sine_values[0]])
-        #print("Setting start positions for Step and Sine values:", self.step_values[0],", ",  self.sine_values[0])
-
+        print("Setting start positions for Step and Sine values:", self.step_values[0],", ",  self.sine_values[0])
 
     def finalCheck(self):
         if len(self.aAddresses) != len(self.aValues):
@@ -380,8 +373,13 @@ class T7:
                     print("ERROR. VALUE TOO BIG")
                 self.abort_scan = True
 
+            if self.aAddresses[i] == self.q_M101_addr:
+                if self.aValues[i] != 0 and self.aValues[i] != 1:
+                    print("ERROR. QUTAG PING VALUE ERROR")
+                    self.abort_scan = True
+
         if self.abort_scan:
-            print("Final Check Failed")
+            print("\nFinal Check Failed")
         else:
             print("Final Check Succeeded")
 
@@ -401,16 +399,17 @@ class T7:
         scanRate = ljm.eStreamStart(self.handle, self.b_scansPerRead, self.b_nrAddresses, self.b_aScanList, self.b_scanRate)
         #print("Scan Rate:", self.b_scanRate, "vs.", scanRate)
 
-        if self.useTrigger:
-            print("")
-            print("-------")
-            print(f"Stream activated, but waiting. ")
-            print(f"You can trigger stream now via a falling edge on {self.tr_source_addr}.\n")
-            print("Sleeping 5 seconds to test trigger:")
-            for i in range(1, 6):
-                print(i, "s ...")
-                time.sleep(1)
+        """        if self.useTrigger:
+        print("")
+        print("-------")
+        print(f"Stream activated, but waiting. ")
+        print(f"You can trigger stream now via a falling edge on {self.tr_source_addr}.\n")
+        print("Sleeping 5 seconds to test trigger:")
+        for i in range(1, 6):
+            print(i, "s ...")
+            time.sleep(1)"""
         print("ljm.WriteNames(...)")
+
         start_time = time.time()
         rc = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
         end_time = time.time()
