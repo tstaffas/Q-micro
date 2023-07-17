@@ -53,15 +53,15 @@ import matplotlib.pyplot as plt
 
 class Raster:  # USER CAN CHANGE SCAN CLASS PARAMETERS BELOW!!
 
-    scan_name = 'multitrigger_digit_8_single_marker'     # Info about image being scanned: {'digit', 'lines'}
-    sine_freq = 1
+    scan_name = 'multi_trigger_digit_8_double_marker'     # Info about image being scanned: {'digit', 'lines'}
+    sine_freq = 30
     sine_voltage = 0.3      # amplitude, max value = 0.58  -->  galvo angle=voltage/0.22
     step_voltage = 0.3      # +- max and min voltages for stepping  -->   galvo angle=voltage/0.22
-    step_dim = 10          # TODO check if there is a limit here???  step_dim = 1000/sine_freq ???
+    step_dim = 100          # TODO check if there is a limit here???  step_dim = 1000/sine_freq ???
 
-    recordScan = False       # to connect to qutag to record data
-    ping101 = True           # marker BEFORE step, after sweep ends
-    ping102 = False            # marker AFTER step, before sweep starts
+    recordScan = True       # to connect to qutag to record data
+    ping101 = True           # marker AFTER  step, after sweep ends
+    ping102 = True            # marker BEFORE step, before sweep starts
 
     # -----Extra params that shouldn't change but can be for debugging--------
     pingQuTag = True
@@ -185,7 +185,7 @@ class T7:
         self.step_dim = self.scanVariables.step_dim
 
         # -----------------------
-        self.extra_delay = 0.15  # extra delay (seconds) to ensure that sine curve has reached a minimum
+        self.extra_delay = 0.001  # extra delay (seconds) to ensure that sine curve has reached a minimum
         self.step_delay = self.sine_period + self.extra_delay  # time between every X command. Should be half a period (i.e. time for one up sweep)
 
         # calculates constants we need to do wait_us_blocking for any frequency. NOTE!!! Can be moved to get_params func
@@ -198,7 +198,7 @@ class T7:
         print("remaining delay:", round(self.step_delay - coveredDelay, 6), "?=", self.remaining_delay/1000000)
         # -----------------------
         # Expected scan time:
-        self.scanTime = self.step_dim * self.step_delay * 1.5  # Note: it will be slightly higher than this which depends on how fast labjack can iterate between commands
+        self.scanTime = (self.step_dim * self.step_delay ) + 5  # Note: it will be slightly higher than this which depends on how fast labjack can iterate between commands
 
     # Step 2) Returns a list of step and sine values that the scan will perform
     def get_step_values(self):
@@ -293,17 +293,9 @@ class T7:
 
         self.cmd_pulse_trigger(state="arm")
         for step in self.step_values:
-            # self.cmd_marker(102)
-
-            #for i in range(10):
-            #    self.aAddresses += [self.wait_address]# TEMP REMOVE
-            #    self.aValues += [self.wait_delay]     # TEMP REMOVE
+            self.cmd_marker(102)
 
             self.cmd_step_value(step)
-
-            #for i in range(10):
-            #    self.aAddresses += [self.wait_address]# TEMP REMOVE
-            #    self.aValues += [self.wait_delay]     # TEMP REMOVE
 
             self.cmd_marker(101)
 
@@ -321,9 +313,61 @@ class T7:
             self.reset_num_scans()  # NEED TO RESET STUFF
             self.cmd_enable_trigger("on")
 
+    def test_populate_scan_cmd_list_burst(self):  # USE TRIGGER WE HAVE SET UP PREVIOUSLY
+        #print("OPTION 1: external trigger")
+        """
+        _____________________________________________
+
+        PREV METHOD:
+        > trigger stream
+        > for i in range(dimX):
+            > marker 101 (maybe)
+            > step
+            > marker 102
+            > wait --> t=period
+        _____________________________________________
+
+        NEW METHOD:
+        arm trigger
+        > repeat:
+            > step
+            > marker 101
+            > fire trigger
+            > wait --> t=period+delta
+            > marker 102 (maybe)  ...  or this should be before we step?
+            > reset trigger and stream configs for next round
+        _____________________________________________
+        """
+        # do below instead of add_wait_delay to see that we do need to wait a full period
+        # self.aAddresses += [self.wait_address]
+        # self.aValues += [self.wait_delay]
+
+        self.cmd_pulse_trigger(state="arm")
+        for step in self.step_values:
+            self.cmd_marker(102)
+            self.cmd_step_value(step)
+            self.cmd_marker(101)
+
+            self.cmd_pulse_trigger(state="fire")
+            self.add_wait_delay()   # waits a period and a delta extra
+             # RESETTING TRIGGER ETC:
+            self.cmd_enable_trigger("off")
+            self.cmd_pulse_trigger(state="arm")
+            self.reset_num_scans()  # NEED TO RESET STUFF
+            self.cmd_enable_trigger("on")
+
+            """self.cmd_pulse_trigger(state="fire")
+            self.add_wait_delay()  # waits a period and a delta extra
+            # RESETTING TRIGGER ETC:
+            self.cmd_enable_trigger("off")
+            self.cmd_pulse_trigger(state="arm")
+            self.reset_num_scans()  # NEED TO RESET STUFF
+            self.cmd_enable_trigger("on")"""
+
+
     def reset_num_scans(self):
         self.aAddresses += ["STREAM_NUM_SCANS"]
-        self.aValues += [self.sine_dim]
+        self.aValues += [self.sine_dim]  # [int(self.sine_dim/2)]  # [self.sine_dim]
 
     def add_wait_delay(self ):
         # Add as many 0.1s delays as we can fit
@@ -435,7 +479,8 @@ class T7:
             # self.b_aScanList      done
             # self.b_scanRate)      TODO check
             # NUM SCANS WORKS WITH PERIODIC SETUP
-            ljm.eWriteName(self.handle, "STREAM_NUM_SCANS", self.sine_dim)  # = 256, how many values in buffer we want to burst stream (full period of values)
+            # TODO: change back below
+            ljm.eWriteName(self.handle, "STREAM_NUM_SCANS", self.sine_dim)  # int(self.sine_dim/2))  # = 256, how many values in buffer we want to burst stream (full period of values)
             ljm.eWriteName(self.handle, "STREAM_SCANRATE_HZ", self.b_scanRate)  #
             ljm.eWriteName(self.handle, "STREAM_NUM_ADDRESSES", self.b_nrAddresses)  # len(b_aScanList), nr of output channels/streams
             #ljm.eWriteName(self.handle, "STREAM_AUTO_TARGET", )  # TODO CHECK IF NEEDED
