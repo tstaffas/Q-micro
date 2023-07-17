@@ -49,19 +49,19 @@ import matplotlib.pyplot as plt
 #   > !! ANSWER CAROLS EMAIL FOR FKS SAKE !!
 # ------------------------------------------------------------
 
-# UPDATED 14 JULY 2023
+# UPDATED 17 JULY 2023
 
 class Raster:  # USER CAN CHANGE SCAN CLASS PARAMETERS BELOW!!
 
-    scan_name = 'digit_8_double_markers'     # Info about image being scanned: {'digit', 'lines'}
+    scan_name = 'multitrigger_digit_8_single_marker'     # Info about image being scanned: {'digit', 'lines'}
     sine_freq = 1
     sine_voltage = 0.3      # amplitude, max value = 0.58  -->  galvo angle=voltage/0.22
     step_voltage = 0.3      # +- max and min voltages for stepping  -->   galvo angle=voltage/0.22
-    step_dim = 100          # TODO check if there is a limit here???  step_dim = 1000/sine_freq ???
+    step_dim = 10          # TODO check if there is a limit here???  step_dim = 1000/sine_freq ???
 
-    recordScan = True       # to connect to qutag to record data
-    ping101 = False           # marker BEFORE step, after sweep ends
-    ping102 = True            # marker AFTER step, before sweep starts
+    recordScan = False       # to connect to qutag to record data
+    ping101 = True           # marker BEFORE step, after sweep ends
+    ping102 = False            # marker AFTER step, before sweep starts
 
     # -----Extra params that shouldn't change but can be for debugging--------
     pingQuTag = True
@@ -112,10 +112,12 @@ class T7:
 
             #print("\nStep 4) Opening labjack connection")
             self.open_labjack_connection()
+            #err = ljm.eStreamStop(self.handle)
 
             #print("\nStep 6) Populating command list.")
             self.populate_scan_cmd_list_burst()
-            self.populate_buffer_stream()
+            #self.populate_buffer_stream()
+            self.fill_buffer_stream()
 
             # Double check that scan command lists are safe
             SafetyTests().check_cmd_list()
@@ -183,23 +185,20 @@ class T7:
         self.step_dim = self.scanVariables.step_dim
 
         # -----------------------
-        self.extra_delay = 0.4  # extra delay (seconds) to ensure that sine curve has reached a minimum
+        self.extra_delay = 0.15  # extra delay (seconds) to ensure that sine curve has reached a minimum
         self.step_delay = self.sine_period + self.extra_delay  # time between every X command. Should be half a period (i.e. time for one up sweep)
+
         # calculates constants we need to do wait_us_blocking for any frequency. NOTE!!! Can be moved to get_params func
         # Calculate residual delay for step delay (a full period)
         self.wait_delay = 0.1 * 1000000  # wait_delay = self.step_delay * 1000000   # "Delays for x microseconds. Range is 0-100000
-        self.remaining_delay = ((self.step_delay / 0.1) - int(self.step_delay / 0.1)) * 0.1 * 1000000
-        # print("Compare:", round(self.step_delay/0.1, 6), "?=", int(self.step_delay/0.1))
-        # print("total delay:", round(self.step_delay, 6))
-        # print("covered delay:", round(0.1*int(self.step_delay/0.1), 6))
-        # print("remaining delay=", round(self.step_delay - (0.1*int(self.step_delay/0.1)),6), "?=", self.remaining_delay)
+        coveredDelay = 0.1*int(self.step_delay/0.1)
+        self.remaining_delay = (round(self.step_delay/0.1, 10) - int(self.step_delay / 0.1)) * 0.1 * 1000000
+        print("total delay:", round(self.step_delay, 6))
+        print("covered delay:", round(coveredDelay, 6), "seconds")
+        print("remaining delay:", round(self.step_delay - coveredDelay, 6), "?=", self.remaining_delay/1000000)
         # -----------------------
-
         # Expected scan time:
-        #print("Sine -->  delay:", self.sine_delay, ", dim:", self.sine_dim, ", sine period:", self.sine_period)
-        #print("Step -->  delay:", self.step_delay, ", dim:", self.step_dim, ", sine period:", self.sine_period)
         self.scanTime = self.step_dim * self.step_delay * 1.5  # Note: it will be slightly higher than this which depends on how fast labjack can iterate between commands
-
 
     # Step 2) Returns a list of step and sine values that the scan will perform
     def get_step_values(self):
@@ -266,66 +265,8 @@ class T7:
                 break
 
     # Step 6) Adds x values and qtag pings and other commands to command list
-    def populate_scan_cmd_list_burst(self):
-
-        # OPTION 1: USE TRIGGER WE HAVE SET UP PREVIOUSLY
-        if self.useTrigger:
-            self.option1()
-
-        # OPTION 2: NOT DONE YET!!!  ALTERNATIVE THAT TRIES TO TRIGGER WITH "STREAM_ENABLE" AS A SORT OF TRIGGER
-        else:
-            self.option2()
-
-    # marker = {101, 102}
-    def cmd_marker(self, marker):
-        # Add "step marker"
-        if self.q_pingQuTag:
-            if marker == 101 and self.ping101:
-                self.aAddresses += [self.q_M101_addr, self.q_M101_addr]
-                self.aValues += [1, 0]
-
-            elif marker == 102 and self.ping102:
-                self.aAddresses += [self.q_M102_addr, self.q_M102_addr]  # note: not using end sweep address
-                self.aValues += [1, 0]
-            else:
-                print("Error. Invalid marker.")
-                self.abort_scan = True
-
-    # pulse state = {"arm", "fire"}
-    def cmd_pulse_trigger(self, state):
-        if self.useTrigger:
-            # Send a falling edge to the source of the trigger pulse, which is connected to the trigger channel --> Triggers stream.
-            if state == "arm":
-                self.aAddresses += [self.tr_source_addr]
-                self.aValues += [1]     # arm/setup trigger --> 1=High
-            elif state == "fire":  # trigger is set off by falling edge (edge from 1 to 0)
-                self.aAddresses += [self.tr_source_addr]
-                self.aValues += [0]     # execute trigger --> 0=Low
-        else:
-            print("Error. Incorrect trigger based on 'useTrigger' parameter.")
-
-    # enable state = {"on", "off"}
-    def cmd_enable_trigger(self, state):
-        # instead of jumper trigger, use "ENABLE_STREAM"
-        if not self.useTrigger:
-            if state == "on":
-                self.aAddresses += ["ENABLE_STREAM"]  # TODO CHECK SYNTAX FOR ADDRESS
-                self.aValues += [1]  # 1=High
-            elif state == "off":
-                self.aAddresses += ["ENABLE_STREAM"]  # TODO CHECK SYNTAX FOR ADDRESS
-                self.aValues += [0]  # 0=Low
-            else:
-                print("Error in enable stream")
-                self.abort_scan = True
-        else:
-            print("Error. Incorrect trigger based on 'useTrigger' parameter.")
-
-    def cmd_step_value(self, step):
-        # Add step value
-        self.aAddresses += [self.step_addr]
-        self.aValues += [step]
-
-    def option1(self):  # USE TRIGGER WE HAVE SET UP PREVIOUSLY
+    def populate_scan_cmd_list_burst(self):  # USE TRIGGER WE HAVE SET UP PREVIOUSLY
+        #print("OPTION 1: external trigger")
         """
         _____________________________________________
 
@@ -349,42 +290,42 @@ class T7:
             > reset trigger and stream configs for next round
         _____________________________________________
         """
-        self.cmd_pulse_trigger(state="arm")
 
+        self.cmd_pulse_trigger(state="arm")
         for step in self.step_values:
-            self.cmd_marker(102)
+            # self.cmd_marker(102)
+
+            #for i in range(10):
+            #    self.aAddresses += [self.wait_address]# TEMP REMOVE
+            #    self.aValues += [self.wait_delay]     # TEMP REMOVE
+
             self.cmd_step_value(step)
+
+            #for i in range(10):
+            #    self.aAddresses += [self.wait_address]# TEMP REMOVE
+            #    self.aValues += [self.wait_delay]     # TEMP REMOVE
+
             self.cmd_marker(101)
 
-            self.cmd_pulse_trigger(state="fire")  # self.cmd_enable_trigger(state="on")
+            self.cmd_pulse_trigger(state="fire")
 
             self.add_wait_delay()   # waits a period and a delta extra
 
-            self.cmd_pulse_trigger(state="arm")  # self.cmd_enable_trigger(state="off")
+            # do below instead of add_wait_delay to see that we do need to wait a full period
+            #self.aAddresses += [self.wait_address]
+            #self.aValues += [self.wait_delay]
 
-            self.reset_stream_options()
+             # RESETTING TRIGGER ETC:
+            self.cmd_enable_trigger("off")
+            self.cmd_pulse_trigger(state="arm")
+            self.reset_num_scans()  # NEED TO RESET STUFF
+            self.cmd_enable_trigger("on")
 
-    def option2(self):    # ALTERNATIVE THAT TRIES TO TRIGGER WITH "STREAM_ENABLE" AS A SORT OF TRIGGER
-        # TODO: check if we need to do this first
-        self.cmd_enable_trigger(state="off")  # self.cmd_pulse_trigger(state="arm")
+    def reset_num_scans(self):
+        self.aAddresses += ["STREAM_NUM_SCANS"]
+        self.aValues += [self.sine_dim]
 
-        for step in self.step_values:
-            self.cmd_marker(102)
-            self.cmd_step_value(step)
-            self.cmd_marker(101)
-
-            self.cmd_enable_trigger(state="on")  # self.cmd_pulse_trigger(state="fire")
-
-            self.add_wait_delay()  # waits a period and a delta extra
-
-            self.cmd_enable_trigger(state="off")  # self.cmd_pulse_trigger(state="arm")
-
-            self.reset_stream_options()
-
-    def reset_stream_options(self):
-        pass
-
-    def add_wait_delay(self, ):
+    def add_wait_delay(self ):
         # Add as many 0.1s delays as we can fit
         for i in range(int(self.step_delay / 0.1)):
             self.aAddresses += [self.wait_address]
@@ -394,8 +335,70 @@ class T7:
             self.aAddresses += [self.wait_address]
             self.aValues += [self.remaining_delay]
 
+    # marker = {101, 102}
+    def cmd_marker(self, marker):
+        # Add "step marker"
+        if self.q_pingQuTag:
+            if marker == 101 and self.ping101:
+                self.aAddresses += [self.q_M101_addr, self.q_M101_addr]
+                self.aValues += [1, 0]
+
+            elif marker == 102 and self.ping102:
+                self.aAddresses += [self.q_M102_addr, self.q_M102_addr]  # note: not using end sweep address
+                self.aValues += [1, 0]
+            else:
+                pass
+
+    # pulse state = {"arm", "fire"}
+    def cmd_pulse_trigger(self, state):
+        if self.useTrigger:
+            # Send a falling edge to the source of the trigger pulse, which is connected to the trigger channel --> Triggers stream.
+            if state == "arm":
+                self.aAddresses += [self.tr_source_addr]
+                self.aValues += [1]     # arm/setup trigger --> 1=High
+            elif state == "fire":  # trigger is set off by falling edge (edge from 1 to 0)
+                self.aAddresses += [self.tr_source_addr]
+                self.aValues += [0]     # execute trigger --> 0=Low
+        else:
+            print("Error. Incorrect trigger based on 'useTrigger' parameter.")
+
+    # enable state = {"on", "off"}
+    def cmd_enable_trigger(self, state):
+        # instead of jumper trigger, use "ENABLE_STREAM"
+        if self.useTrigger:   #        if not self.useTrigger: before
+            if state == "on":
+                self.aAddresses += ["STREAM_ENABLE"]  # TODO CHECK SYNTAX FOR ADDRESS
+                self.aValues += [1]  # 1=High
+
+            elif state == "off":
+                self.aAddresses += ["STREAM_ENABLE"]  # TODO CHECK SYNTAX FOR ADDRESS
+                self.aValues += [0]  # 0=Low
+            else:
+                print("Error in enable stream")
+                self.abort_scan = True
+        else:
+            print("Error. Incorrect enable trigger based on 'useTrigger' parameter.")
+
+    def cmd_step_value(self, step):
+        # Add step value
+        self.aAddresses += [self.step_addr]
+        self.aValues += [step]
+
     # Step 7) Write sine waveform values to stream buffer (memory)
-    def populate_buffer_stream(self):
+    def fill_buffer_stream(self):
+        # https://labjack.com/pages/support?doc=/datasheets/t-series-datasheet/32-stream-mode-t-series-datasheet/#section-header-two-ttmre
+        try:
+            # print("Initializing stream out... \n")
+            err = ljm.periodicStreamOut(self.handle, self.b_streamOutIndex, self.b_targetAddress, self.b_scanRate, self.sine_dim, self.sine_values)
+            # print("Write to buffer error =", err)
+        except ljm.LJMError:
+            print("Failed upload buffer vals")
+            # ljm_stream_util.prepareForExit(self.handle)
+            self.close_labjack_connection()
+            raise
+
+    # Step 7) Write sine waveform values to stream buffer (memory)
+    def OLD_populate_buffer_stream(self):
         # https://labjack.com/pages/support?doc=/datasheets/t-series-datasheet/32-stream-mode-t-series-datasheet/#section-header-two-ttmre
         # previously had: ljm.periodicStreamOut(self.handle, self.b_streamOutIndex, self.b_targetAddress, self.b_scanRate, self.sine_dim, self.sine_values)
         try:
@@ -406,23 +409,24 @@ class T7:
             #self.sine_values                           done
 
             # TODO: CHECK IF WE NEED TO TURN OFF "STREAM_ENABLE" BELOW BEFORE STARTING
-            ljm.eWriteName(self.handle, "STREAM_ENABLE", 0)                                                 # ?? start by turning off any stream in case it's on?
+            #ljm.eWriteName(self.handle, "STREAM_ENABLE", 0)                                                 # ?? start by turning off any stream in case it's on?
+            #ljm.eWriteName(self.handle, "STREAM_BUFFER_SIZE_BYTES", self.b_max_buffer_size)    # allows for 256 float (F32) values (max limit for DAC)
 
             ljm.eWriteName(self.handle, "STREAM_OUT0_ENABLE", 0)                                            # disable stream 0 while configuring
             ljm.eWriteName(self.handle, "STREAM_OUT0_TARGET", self.b_targetAddress)                         # physical I/O that outputs buffer values
             ljm.eWriteName(self.handle, "STREAM_OUT0_BUFFER_ALLOCATE_NUM_BYTES", self.b_max_buffer_size)    # allows for 256 float (F32) values (max limit for DAC)
-            ljm.eWriteName(self.handle, "STREAM_OUT0_ENABLE", 1)                                            # enable stream 0 when done configuring
-
-            #ljm.eWriteName(self.handle, "STREAM_SCANLIST_ADDRESS0", "")                         # list of values to write to buffer, should be 256 values for full period
-            ljm.eWriteName(self.handle, "STREAM_OUT0_BUFFER_F32", self.sine_values)                         # list of values to write to buffer, should be 256 values for full period
-
+            ljm.eWriteName(self.handle, "STREAM_OUT0_ENABLE", 1)
+            # enable stream 0 when done configuring
+            # list of values to write to buffer, should be 256 values for full period
+            ljm.eWriteNameArray(self.handle, "STREAM_OUT0_BUFFER_F32", self.sine_dim, self.sine_values)
+            ljm.eWriteName(self.handle, "STREAM_OUT0_LOOP_NUM_VALUES", 1)
+            ljm.eWriteName(self.handle, "STREAM_OUT0_SET_LOOP", 1)
 
         except ljm.LJMError:
             print("Failed upload buffer vals")
             self.close_labjack_connection()
             raise
 
-    # TODO: Config stream instead of using eStreamStart()
     def configure_stream_start(self):
         # previously --> ljm.eStreamStart(self.handle, self.b_scansPerRead, self.b_nrAddresses, self.b_aScanList, self.b_scanRate)
         try:
@@ -430,22 +434,17 @@ class T7:
             # self.b_nrAddresses    done
             # self.b_aScanList      done
             # self.b_scanRate)      TODO check
-
-            # TODO figure out where NUM_SCANS belongs (to do burst stream)
+            # NUM SCANS WORKS WITH PERIODIC SETUP
             ljm.eWriteName(self.handle, "STREAM_NUM_SCANS", self.sine_dim)  # = 256, how many values in buffer we want to burst stream (full period of values)
-
             ljm.eWriteName(self.handle, "STREAM_SCANRATE_HZ", self.b_scanRate)  #
             ljm.eWriteName(self.handle, "STREAM_NUM_ADDRESSES", self.b_nrAddresses)  # len(b_aScanList), nr of output channels/streams
             #ljm.eWriteName(self.handle, "STREAM_AUTO_TARGET", )  # TODO CHECK IF NEEDED
-            ljm.eWriteName(self.handle, "STREAM_SCANLIST_ADDRESS0", self.b_aScanList)  # TODO CHECK IF NEEDED AND WHAT IT IS
+            ljm.eWriteName(self.handle, "STREAM_SCANLIST_ADDRESS0", self.b_aScanList[0])  # TODO CHECK IF NEEDED AND WHAT IT IS
             #ljm.eWriteName(self.handle, "STREAM_DATATYPE", 0)  # ???? TODO CHECK IF NEEDED
-
             if self.useTrigger:
                 ljm.eWriteName(self.handle, "STREAM_ENABLE", 1)  # ???? TODO CHECK IF NEEDED
-
             # TODO: READ BACK ACTUAL SCAN RATE SOMEHOW
             # print("Scan Rate:", self.b_scanRate, "vs.", scanRate)
-
         except ljm.LJMError:
             print("Failed config buffer stream")
             self.close_labjack_connection()
@@ -454,7 +453,7 @@ class T7:
     # Set up trigger for buffer stream:
     def configure_stream_trigger(self):
         # https://labjack.com/pages/support?doc=/datasheets/t-series-datasheet/132-dio-extended-features-t-series-datasheet/
-        print("Configuring trigger")
+        #print("Configuring trigger")
 
         ljm.eWriteName(self.handle, "STREAM_TRIGGER_INDEX", 0) # disabling triggered stream, also clears previous settings i think
         ljm.eWriteName(self.handle, "STREAM_CLOCK_SOURCE", 0)  # Enabling internally-clocked stream.
@@ -481,13 +480,13 @@ class T7:
         ljm.eWriteName(self.handle, "%s_EF_ENABLE" % self.tr_sink_addr, 1)
 
         # Arming/loading trigger. Trigger activates when self.tr_source_addr goes from 1 to 0 --> falling edge trigger
-        ljm.eWriteName(self.handle, self.tr_source_addr, 1)
+        #ljm.eWriteName(self.handle, self.tr_source_addr, 1)
 
     # Step 8) Sets start scan positions of galvos
     def init_start_positions(self):
         if abs(self.step_values[0]) < 5 and abs(self.sine_values[0]) < 5:
             ljm.eWriteNames(self.handle, 2, [self.step_addr, self.sine_addr], [self.step_values[0], self.sine_values[0]])
-            print("Setting start positions for Step and Sine values:", self.step_values[0],", ",  self.sine_values[0])
+            #print("Setting start positions for Step and Sine values:", self.step_values[0],", ",  self.sine_values[0])
         else:
             self.abort_scan = True
 
@@ -504,29 +503,35 @@ class T7:
 
     # Step 9) Actual scan is done here
     def start_scan(self):
-        # print("\nSetting start positions of galvos.")
-        self.init_start_positions()
-        time.sleep(1)  # give galvo a bit of time to reach start pos
+        try:
+            if self.abort_scan:  # last line of defense
+                return
 
-        if self.abort_scan:  # last line of defense
-            return
+            # print("\nSetting start positions of galvos.")
+            self.init_start_positions()
+            time.sleep(1)  # give galvo a bit of time to reach start pos
 
-        # waits 5 seconds after trigger is set up, can be removed later
-        self.test_trigger()
+            # waits 5 seconds after trigger is set up, can be removed later
+            #self.test_trigger()
 
-        print("Calling ljm.WriteNames(...)")
+            print("Calling ljm.WriteNames(...)")
 
-        start_time = time.time()
-        rc = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
-        end_time = time.time()
+            start_time = time.time()
+            rc = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
+            end_time = time.time()
 
-        err = ljm.eStreamStop(self.handle)
-        print(f"Expected scan time = {int(self.scanTime)} seconds")
-        print(f"Actual scan time   = {end_time - start_time} seconds")
-        print("WriteNames error (stepping):", rc)
+            err = ljm.eStreamStop(self.handle)
+            print(f"\nTheoretical scan time = {self.step_dim * self.step_delay} seconds")
+            print(f"Actual scan time   = {round(end_time - start_time, 6)} seconds\n")
 
-        # reset galvo positions to offset:
-        self.set_offset_pos()
+            # reset galvo positions to offset:
+            self.set_offset_pos()
+
+        except ljm.LJMError:
+            print("Failed scan")
+            #err = ljm.eStreamStop(self.handle)
+            self.close_labjack_connection()
+            raise
 
     # Sets galvos to set offset positions 
     def set_offset_pos(self):
@@ -596,8 +601,8 @@ class SafetyTests:
                 t7.abort_scan = True
 
             elif t7.aAddresses[i] == t7.wait_address:
-                if t7.aValues[i] < 100:
-                    print("ERROR. WAIT VALUE IS TOO SMALL. CMD LIST LIKELY MISALIGNED")
+                if t7.aValues[i] < 100 and t7.aValues[i] != 0:
+                    print("ERROR. ", t7.aValues[i], " WAIT VALUE IS TOO SMALL.")
                     t7.abort_scan = True
 
             elif t7.aAddresses[i] == t7.step_addr:
@@ -616,8 +621,11 @@ class SafetyTests:
                     print("ERROR. MARKER VALUE ERROR. MUST BE IN {0,1}")
                     t7.abort_scan = True
 
+            elif t7.aAddresses[i] == "STREAM_ENABLE" or t7.aAddresses[i] == "STREAM_NUM_SCANS":
+                pass
             else:
-                print("Address not recognized or checked for in 'check_cmd_list()'. Aborting scan.")
+                print(t7.aAddresses[i], "... Address not recognized or checked for in 'check_cmd_list()'. Aborting scan.")
+
                 t7.abort_scan = True
 
         if t7.abort_scan:
