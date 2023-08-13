@@ -49,12 +49,13 @@ import matplotlib.pyplot as plt
 #   > !! ANSWER CAROLS EMAIL FOR FKS SAKE !!
 # ------------------------------------------------------------
 
-# UPDATED 17 JULY 2023
+# UPDATED 13 AUGUST 2023
 
 class Raster:  # USER CAN CHANGE SCAN CLASS PARAMETERS BELOW!!
 
     scan_name = 'multi_trigger_digit_8_double_marker'     # Info about image being scanned: {'digit', 'lines'}
-    sine_freq = 30
+    num_frames = 2          # NOTE: NEW PARAMETER!!  how many images we want to scan
+    sine_freq = 5
     sine_voltage = 0.3      # amplitude, max value = 0.58  -->  galvo angle=voltage/0.22
     step_voltage = 0.3      # +- max and min voltages for stepping  -->   galvo angle=voltage/0.22
     step_dim = 100          # TODO check if there is a limit here???  step_dim = 1000/sine_freq ???
@@ -67,9 +68,10 @@ class Raster:  # USER CAN CHANGE SCAN CLASS PARAMETERS BELOW!!
     pingQuTag = True
     useTrigger = True
     diagnostics = False     # timeres file when False vs. txt file when True
+    plotting = False
     currDate = date.today().strftime("%y%m%d")
     currTime = time.strftime("%Hh%Mm%Ss", time.localtime())
-    filename = f'{scan_name}_sineFreq({sine_freq})_sineAmp({sine_voltage})_stepAmp({step_voltage})_stepDim({step_dim})_date({currDate})_time({currTime})'
+    filename = f'{scan_name}_sineFreq({sine_freq})_numFrames({num_frames})_sineAmp({sine_voltage})_stepAmp({step_voltage})_stepDim({step_dim})_date({currDate})_time({currTime})'
 
 
 class T7:
@@ -97,6 +99,7 @@ class T7:
         self.y_offset = -0.289
 
     # MAIN FUNCTION THAT PREPARES AND PERFORMS SCAN:
+    # MULTI-DONE
     def main_galvo_scan(self):
         #print("\nStep 1) Defining scan parameters.") 
         self.get_scan_parameters()
@@ -108,6 +111,12 @@ class T7:
         #print("\nStep 3) Doing safety check on scan parameters.")
         SafetyTests().check_voltages()  # MOST IMPORTANT SO WE DON'T DAMAGE DEVICE WITH TOO HIGH VOLTAGE
 
+        if self.scanVariables.plotting:
+            #plot_values()
+            plot_values_up()
+            plot_values_down()
+            plt.show()
+
         if not self.abort_scan:
 
             #print("\nStep 4) Opening labjack connection")
@@ -115,12 +124,17 @@ class T7:
             #err = ljm.eStreamStop(self.handle)
 
             #print("\nStep 6) Populating command list.")
-            self.populate_scan_cmd_list_burst()
+            self.multi_populate_scan_cmd_list_burst()
+            # self.multi_populate_scan_lists()  #### NEW NAME???
+
             #self.populate_buffer_stream()
             self.fill_buffer_stream()
 
             # Double check that scan command lists are safe
-            SafetyTests().check_cmd_list()
+            #SafetyTests().multi_check_cmd_list(self.aAddresses, self.aValues, check_txt="OG Check")
+            SafetyTests().multi_check_cmd_list(self.aAddressesUp, self.aValuesUp, check_txt="Up Check")
+            SafetyTests().multi_check_cmd_list(self.aAddressesDown, self.aValuesDown, check_txt="Down Check")
+
             if self.abort_scan:
                 return
 
@@ -128,7 +142,7 @@ class T7:
                 #print("Prepping stream trigger")
                 self.configure_stream_trigger()
 
-            # Finish stream configs , replaces: ljm.eStreamStart(self.handle, self.b_scansPerRead, self.b_nrAddresses, self.b_aScanList, self.b_scanRate)
+            # Finish stream configs , replaces: ljm.eStreamStart(self.handle, self.b_scansPerRead,...)
             self.configure_stream_start()
 
             if self.recordScan:
@@ -136,9 +150,10 @@ class T7:
                 self.socket_connection()
 
             #print("\nStep 8) Performing scan...")
-            self.start_scan()
+            self.multi_start_scan()
 
     # Step 1) Sets all parameters depending on selected scan pattern and scan type
+    # MULTI-DONE
     def get_scan_parameters(self):
         # --------------- HARDCODED FOR THIS SIMPLER METHOD ------------------------------
         self.sine_addr = self.x_address
@@ -154,14 +169,22 @@ class T7:
         self.useTrigger = self.scanVariables.useTrigger
         self.ping101 = self.scanVariables.ping101  # marker before step
         self.ping102 = self.scanVariables.ping102  # marker after step
+        self.num_frames = self.scanVariables.num_frames         # NOTE: NEW PARAM # how many frames/images we want to scan
         # --------------- PLACEHOLDER VALUES --------------------------------------------
         # List of x and y values, and lists sent to Labjack:
-        self.step_values = []       # values to step through
-        self.step_times = []        # for plotting (single period)
-        self.sine_values = []       # values for one sine period, for buffer
-        self.sine_times = []        # for plotting (single period)
-        self.aAddresses = []
-        self.aValues = []
+        self.step_values = []           # values to step through
+        self.step_values_up = []        # NOTE: NEW VARIABLE
+        self.step_values_down = []      # NOTE: NEW VARIABLE
+
+        self.step_times = []            # for plotting (single period)
+        self.sine_values = []           # values for one sine period, for buffer
+        self.sine_times = []            # for plotting (single period)
+        #self.aAddresses = []
+        #self.aValues = []
+        self.aAddressesUp = []          # NOTE: NEW PARAM
+        self.aValuesUp = []             # NOTE: NEW PARAM
+        self.aAddressesDown = []        # NOTE: NEW PARAM
+        self.aValuesDown = []           # NOTE: NEW PARAM
         # --------------- SINE ------------------------------ 
         self.b_max_buffer_size = 512  # Buffer stream size for y waveform values. --> Becomes resolution of sinewave period waveform == y_steps . i think it is max 512 samples (16-bit samples)?
         # Sine waveform: 
@@ -193,12 +216,13 @@ class T7:
         self.wait_delay = 0.1 * 1000000  # wait_delay = self.step_delay * 1000000   # "Delays for x microseconds. Range is 0-100000
         coveredDelay = 0.1*int(self.step_delay/0.1)
         self.remaining_delay = (round(self.step_delay/0.1, 10) - int(self.step_delay / 0.1)) * 0.1 * 1000000
+
         print("total delay:", round(self.step_delay, 6))
         print("covered delay:", round(coveredDelay, 6), "seconds")
         print("remaining delay:", round(self.step_delay - coveredDelay, 6), "?=", self.remaining_delay/1000000)
         # -----------------------
         # Expected scan time:
-        self.scanTime = (self.step_dim * self.step_delay ) + 5  # Note: it will be slightly higher than this which depends on how fast labjack can iterate between commands
+        self.scanTime = (self.num_frames * self.step_dim * self.step_delay) + 5  # Expected time sent to qutag server    Note: it will be slightly higher than this which depends on how fast labjack can iterate between commands
 
     # Step 2) Returns a list of step and sine values that the scan will perform
     def get_step_values(self):
@@ -264,8 +288,22 @@ class T7:
                 time.sleep(3)  # Give the qutag a few seconds to start up
                 break
 
+    # MULTI-DONE
+    def multi_add_to_up_command_lists(self, addresses, values):
+        # This is a precaution to prevent adding to one list without the other
+        self.aAddressesUp += addresses
+        self.aValuesUp += values
+
+    # MULTI-DONE
+    def multi_add_to_down_command_lists(self, addresses, values):
+        # This is a precaution to prevent adding to one list without the other
+        self.aAddressesDown += addresses
+        self.aValuesDown += values
+
     # Step 6) Adds x values and qtag pings and other commands to command list
-    def populate_scan_cmd_list_burst(self):  # USE TRIGGER WE HAVE SET UP PREVIOUSLY
+    # TODO: LOOK INTO TEST FUNCTIONS and what it was for
+    # MULTI-DONE
+    def multi_populate_scan_cmd_list_burst(self):  # USE TRIGGER WE HAVE SET UP PREVIOUSLY
         #print("OPTION 1: external trigger")
         """
         _____________________________________________
@@ -280,7 +318,7 @@ class T7:
         _____________________________________________
 
         NEW METHOD:
-        arm trigger
+        > arm trigger
         > repeat:
             > step
             > marker 101
@@ -289,21 +327,39 @@ class T7:
             > marker 102 (maybe)  ...  or this should be before we step?
             > reset trigger and stream configs for next round
         _____________________________________________
+
+        ACTUAL NEW METHOD:
+        > arm trigger
+        > repeat:
+            > marker 102
+            > step
+            > marker 101
+            > fire pulse
+            > wait --> t=period+delta
+            > enable trigger ("off")
+            > pulse trigger (state="arm")
+            > reset num scans
+            > enable trigger("on")
+        _____________________________________________
         """
 
+        self.step_values_up = self.step_values.copy()       # NOTE: NEW ADDITIONS
+        self.step_values_down = self.step_values.copy()     # NOTE: NEW ADDITIONS
+        self.step_values_down.reverse()                     # NOTE: NEW ADDITIONS
+
         self.cmd_pulse_trigger(state="arm")
-        for step in self.step_values:
+        for step_idx in range(len(self.step_values)):
+
             self.cmd_marker(102)
 
-            self.cmd_step_value(step)
+            self.cmd_step_value(step_idx)
 
             self.cmd_marker(101)
 
             self.cmd_pulse_trigger(state="fire")
 
-            self.add_wait_delay()   # waits a period and a delta extra
-
-            # do below instead of add_wait_delay to see that we do need to wait a full period
+            self.multi_add_wait_delay()   # waits a period and a delta extra
+            # ???? do below instead of multi_add_wait_delay to see that we do need to wait a full period
             #self.aAddresses += [self.wait_address]
             #self.aValues += [self.wait_delay]
 
@@ -313,7 +369,8 @@ class T7:
             self.reset_num_scans()  # NEED TO RESET STUFF
             self.cmd_enable_trigger("on")
 
-    def test_populate_scan_cmd_list_burst(self):  # USE TRIGGER WE HAVE SET UP PREVIOUSLY
+    # MULTI-DONE
+    def test_multi_populate_scan_cmd_list_burst(self):  # USE TRIGGER WE HAVE SET UP PREVIOUSLY
         #print("OPTION 1: external trigger")
         """
         _____________________________________________
@@ -338,95 +395,116 @@ class T7:
             > reset trigger and stream configs for next round
         _____________________________________________
         """
-        # do below instead of add_wait_delay to see that we do need to wait a full period
+        # do below instead of multi_add_wait_delay to see that we do need to wait a full period
         # self.aAddresses += [self.wait_address]
         # self.aValues += [self.wait_delay]
 
+        self.step_values_up = self.step_values.copy()       # NOTE: NEW ADDITIONS
+        self.step_values_down = self.step_values.copy()     # NOTE: NEW ADDITIONS
+        self.step_values_down.reverse()                     # NOTE: NEW ADDITIONS
+
         self.cmd_pulse_trigger(state="arm")
-        for step in self.step_values:
+        for step_idx in range(len(self.step_values)):
             self.cmd_marker(102)
-            self.cmd_step_value(step)
+            self.cmd_step_value(step_idx)
             self.cmd_marker(101)
 
             self.cmd_pulse_trigger(state="fire")
-            self.add_wait_delay()   # waits a period and a delta extra
+            self.multi_add_wait_delay()   # waits a period and a delta extra
              # RESETTING TRIGGER ETC:
             self.cmd_enable_trigger("off")
             self.cmd_pulse_trigger(state="arm")
             self.reset_num_scans()  # NEED TO RESET STUFF
             self.cmd_enable_trigger("on")
 
-            """self.cmd_pulse_trigger(state="fire")
-            self.add_wait_delay()  # waits a period and a delta extra
+            """
+            self.cmd_pulse_trigger(state="fire")
+            self.multi_add_wait_delay()  # waits a period and a delta extra
             # RESETTING TRIGGER ETC:
             self.cmd_enable_trigger("off")
             self.cmd_pulse_trigger(state="arm")
             self.reset_num_scans()  # NEED TO RESET STUFF
             self.cmd_enable_trigger("on")"""
 
-
+    # MULTI-DONE
     def reset_num_scans(self):
-        self.aAddresses += ["STREAM_NUM_SCANS"]
-        self.aValues += [self.sine_dim]  # [int(self.sine_dim/2)]  # [self.sine_dim]
+        #self.aAddresses += ["STREAM_NUM_SCANS"]; self.aValues += [self.sine_dim]  # [int(self.sine_dim/2)]  # [self.sine_dim]
+        self.multi_add_to_up_command_lists(addresses=["STREAM_NUM_SCANS"], values=[self.sine_dim])  # NOTE: NEW ADDITIONS
+        self.multi_add_to_down_command_lists(addresses=["STREAM_NUM_SCANS"], values=[self.sine_dim])  # NOTE: NEW ADDITIONS
 
-    def add_wait_delay(self ):
+    # MULTI-DONE
+    def multi_add_wait_delay(self ):
         # Add as many 0.1s delays as we can fit
         for i in range(int(self.step_delay / 0.1)):
-            self.aAddresses += [self.wait_address]
-            self.aValues += [self.wait_delay]
+            #self.aAddresses += [self.wait_address] ; self.aValues += [self.wait_delay]
+            self.multi_add_to_up_command_lists(  addresses=[self.wait_address], values=[self.wait_delay])     # NOTE: NEW ADDITIONS
+            self.multi_add_to_down_command_lists(addresses=[self.wait_address], values=[self.wait_delay])     # NOTE: NEW ADDITIONS
+
         # Add any residual delay
         if self.remaining_delay > 0:
-            self.aAddresses += [self.wait_address]
-            self.aValues += [self.remaining_delay]
+            #self.aAddresses += [self.wait_address] ; self.aValues += [self.remaining_delay]
+            self.multi_add_to_up_command_lists(  addresses=[self.wait_address], values=[self.remaining_delay])     # NOTE: NEW ADDITIONS
+            self.multi_add_to_down_command_lists(addresses=[self.wait_address], values=[self.remaining_delay])     # NOTE: NEW ADDITIONS
 
     # marker = {101, 102}
+    # MULTI-DONE
     def cmd_marker(self, marker):
         # Add "step marker"
         if self.q_pingQuTag:
             if marker == 101 and self.ping101:
-                self.aAddresses += [self.q_M101_addr, self.q_M101_addr]
-                self.aValues += [1, 0]
+                #self.aAddresses += [self.q_M101_addr, self.q_M101_addr]; self.aValues += [1, 0]
+                self.multi_add_to_up_command_lists(  addresses=[self.q_M101_addr, self.q_M101_addr], values=[1, 0])  # NOTE: NEW ADDITIONS
+                self.multi_add_to_down_command_lists(addresses=[self.q_M101_addr, self.q_M101_addr], values=[1, 0])  # NOTE: NEW ADDITIONS
 
-            elif marker == 102 and self.ping102:
-                self.aAddresses += [self.q_M102_addr, self.q_M102_addr]  # note: not using end sweep address
-                self.aValues += [1, 0]
+            elif marker == 102 and self.ping102:  # note: not using end sweep address
+                #self.aAddresses += [self.q_M102_addr, self.q_M102_addr]; self.aValues += [1, 0]
+                self.multi_add_to_up_command_lists(  addresses=[self.q_M102_addr, self.q_M102_addr], values=[1, 0])  # NOTE: NEW ADDITIONS
+                self.multi_add_to_down_command_lists(addresses=[self.q_M102_addr, self.q_M102_addr], values=[1, 0])  # NOTE: NEW ADDITIONS
             else:
                 pass
 
     # pulse state = {"arm", "fire"}
+    # MULTI-DONE
     def cmd_pulse_trigger(self, state):
         if self.useTrigger:
             # Send a falling edge to the source of the trigger pulse, which is connected to the trigger channel --> Triggers stream.
             if state == "arm":
-                self.aAddresses += [self.tr_source_addr]
-                self.aValues += [1]     # arm/setup trigger --> 1=High
+                #self.aAddresses += [self.tr_source_addr]; self.aValues += [1]     # arm/setup trigger --> 1=High
+                self.multi_add_to_up_command_lists(  addresses=[self.tr_source_addr], values=[1])  # NOTE: NEW ADDITIONS
+                self.multi_add_to_down_command_lists(addresses=[self.tr_source_addr], values=[1])  # NOTE: NEW ADDITIONS
             elif state == "fire":  # trigger is set off by falling edge (edge from 1 to 0)
-                self.aAddresses += [self.tr_source_addr]
-                self.aValues += [0]     # execute trigger --> 0=Low
+                #self.aAddresses += [self.tr_source_addr]; self.aValues += [0]     # execute trigger --> 0=Low
+                self.multi_add_to_up_command_lists(  addresses=[self.tr_source_addr], values=[0])  # NOTE: NEW ADDITIONS
+                self.multi_add_to_down_command_lists(addresses=[self.tr_source_addr], values=[0])  # NOTE: NEW ADDITIONS
         else:
             print("Error. Incorrect trigger based on 'useTrigger' parameter.")
 
     # enable state = {"on", "off"}
+    # MULTI-DONE
     def cmd_enable_trigger(self, state):
         # instead of jumper trigger, use "ENABLE_STREAM"
         if self.useTrigger:   #        if not self.useTrigger: before
             if state == "on":
-                self.aAddresses += ["STREAM_ENABLE"]  # TODO CHECK SYNTAX FOR ADDRESS
-                self.aValues += [1]  # 1=High
+                #self.aAddresses += ["STREAM_ENABLE"] ; self.aValues += [1]  # 1=High
+                self.multi_add_to_up_command_lists(  addresses=["STREAM_ENABLE"], values=[1])  # NOTE: NEW ADDITIONS
+                self.multi_add_to_down_command_lists(addresses=["STREAM_ENABLE"], values=[1])  # NOTE: NEW ADDITIONS
 
             elif state == "off":
-                self.aAddresses += ["STREAM_ENABLE"]  # TODO CHECK SYNTAX FOR ADDRESS
-                self.aValues += [0]  # 0=Low
+                #self.aAddresses += ["STREAM_ENABLE"] ; self.aValues += [0]  # 0=Low
+                self.multi_add_to_up_command_lists(  addresses=["STREAM_ENABLE"], values=[0])  # NOTE: NEW ADDITIONS
+                self.multi_add_to_down_command_lists(addresses=["STREAM_ENABLE"], values=[0])  # NOTE: NEW ADDITIONS
             else:
                 print("Error in enable stream")
                 self.abort_scan = True
         else:
             print("Error. Incorrect enable trigger based on 'useTrigger' parameter.")
 
-    def cmd_step_value(self, step):
+    # MULTI-DONE
+    def cmd_step_value(self, idx):
         # Add step value
-        self.aAddresses += [self.step_addr]
-        self.aValues += [step]
+        # self.aAddresses += [self.step_addr] ; self.aValues += [step]
+        self.multi_add_to_up_command_lists(  addresses=[self.step_addr], values=[self.step_values_up[idx]])    # NOTE: NEW ADDITIONS
+        self.multi_add_to_down_command_lists(addresses=[self.step_addr], values=[self.step_values_down[idx]])  # NOTE: NEW ADDITIONS
 
     # Step 7) Write sine waveform values to stream buffer (memory)
     def fill_buffer_stream(self):
@@ -438,36 +516,6 @@ class T7:
         except ljm.LJMError:
             print("Failed upload buffer vals")
             # ljm_stream_util.prepareForExit(self.handle)
-            self.close_labjack_connection()
-            raise
-
-    # Step 7) Write sine waveform values to stream buffer (memory)
-    def OLD_populate_buffer_stream(self):
-        # https://labjack.com/pages/support?doc=/datasheets/t-series-datasheet/32-stream-mode-t-series-datasheet/#section-header-two-ttmre
-        # previously had: ljm.periodicStreamOut(self.handle, self.b_streamOutIndex, self.b_targetAddress, self.b_scanRate, self.sine_dim, self.sine_values)
-        try:
-            #self.b_streamOutIndex                      done, don't need
-            #self.b_targetAddress                       done
-            #self.b_scanRate                            # TODO: this should be defined somewhere here, i think
-            #self.b_samplesToWrite or self.sine_dim     # TODO check, i think this is used to decide if we do F32 or U16 --> maybe don't need
-            #self.sine_values                           done
-
-            # TODO: CHECK IF WE NEED TO TURN OFF "STREAM_ENABLE" BELOW BEFORE STARTING
-            #ljm.eWriteName(self.handle, "STREAM_ENABLE", 0)                                                 # ?? start by turning off any stream in case it's on?
-            #ljm.eWriteName(self.handle, "STREAM_BUFFER_SIZE_BYTES", self.b_max_buffer_size)    # allows for 256 float (F32) values (max limit for DAC)
-
-            ljm.eWriteName(self.handle, "STREAM_OUT0_ENABLE", 0)                                            # disable stream 0 while configuring
-            ljm.eWriteName(self.handle, "STREAM_OUT0_TARGET", self.b_targetAddress)                         # physical I/O that outputs buffer values
-            ljm.eWriteName(self.handle, "STREAM_OUT0_BUFFER_ALLOCATE_NUM_BYTES", self.b_max_buffer_size)    # allows for 256 float (F32) values (max limit for DAC)
-            ljm.eWriteName(self.handle, "STREAM_OUT0_ENABLE", 1)
-            # enable stream 0 when done configuring
-            # list of values to write to buffer, should be 256 values for full period
-            ljm.eWriteNameArray(self.handle, "STREAM_OUT0_BUFFER_F32", self.sine_dim, self.sine_values)
-            ljm.eWriteName(self.handle, "STREAM_OUT0_LOOP_NUM_VALUES", 1)
-            ljm.eWriteName(self.handle, "STREAM_OUT0_SET_LOOP", 1)
-
-        except ljm.LJMError:
-            print("Failed upload buffer vals")
             self.close_labjack_connection()
             raise
 
@@ -488,7 +536,7 @@ class T7:
             #ljm.eWriteName(self.handle, "STREAM_DATATYPE", 0)  # ???? TODO CHECK IF NEEDED
             if self.useTrigger:
                 ljm.eWriteName(self.handle, "STREAM_ENABLE", 1)  # ???? TODO CHECK IF NEEDED
-            # TODO: READ BACK ACTUAL SCAN RATE SOMEHOW
+            # TODO: READ BACK ACTUAL SCAN RATE
             # print("Scan Rate:", self.b_scanRate, "vs.", scanRate)
         except ljm.LJMError:
             print("Failed config buffer stream")
@@ -525,13 +573,13 @@ class T7:
         ljm.eWriteName(self.handle, "%s_EF_ENABLE" % self.tr_sink_addr, 1)
 
         # Arming/loading trigger. Trigger activates when self.tr_source_addr goes from 1 to 0 --> falling edge trigger
-        #ljm.eWriteName(self.handle, self.tr_source_addr, 1)
+        #ljm.eWriteName(self.handle, self.tr_source_addr, 1)  --> moved to command list!
 
     # Step 8) Sets start scan positions of galvos
     def init_start_positions(self):
-        if abs(self.step_values[0]) < 5 and abs(self.sine_values[0]) < 5:
-            ljm.eWriteNames(self.handle, 2, [self.step_addr, self.sine_addr], [self.step_values[0], self.sine_values[0]])
-            #print("Setting start positions for Step and Sine values:", self.step_values[0],", ",  self.sine_values[0])
+        if abs(self.step_values_up[0]) < 5 and abs(self.sine_values[0]) < 5:
+            ljm.eWriteNames(self.handle, 2, [self.step_addr, self.sine_addr], [self.step_values_up[0], self.sine_values[0]])
+            #print("Setting start positions for Step (up) and Sine values:", self.step_values_up[0], ", ", self.sine_values[0])
         else:
             self.abort_scan = True
 
@@ -547,29 +595,39 @@ class T7:
                 time.sleep(1)
 
     # Step 9) Actual scan is done here
-    def start_scan(self):
+    # MULTI-NEEDS CHECKING
+    def multi_start_scan(self):
+        # Start configured (but trigger-set) stream --> scan several frames
         try:
             if self.abort_scan:  # last line of defense
                 return
 
-            # print("\nSetting start positions of galvos.")
-            self.init_start_positions()
+            self.init_start_positions()  # TODO later, consider moving galvo a bit at start up for best results
             time.sleep(1)  # give galvo a bit of time to reach start pos
 
-            # waits 5 seconds after trigger is set up, can be removed later
+            # test: waits 5 seconds after trigger is set up, can be removed later
             #self.test_trigger()
 
             print("Calling ljm.WriteNames(...)")
 
             start_time = time.time()
-            rc = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
+            # NOTE: OLD WAY = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
+            for i in range(self.num_frames):  # scan repeats for given number of frames
+                if i % 2 == 0:  # if i is even
+                    rc1 = ljm.eWriteNames(self.handle, len(self.aAddressesUp), self.aAddressesUp, self.aValuesUp)  # step left to right (or bottom to top)
+                else:
+                    rc2 = ljm.eWriteNames(self.handle, len(self.aAddressesDown), self.aAddressesDown, self.aValuesDown)  # step right to left (or top to bottom)
+                    # TODO: CHECK THAT WE RETRIGGER ON NEW FRAME^
+
             end_time = time.time()
 
             err = ljm.eStreamStop(self.handle)
-            print(f"\nTheoretical scan time = {self.step_dim * self.step_delay} seconds")
+            print(f"\nETA scan time = {int(self.scanTime)} seconds")
+            print(f"Theoretical scan time = {self.num_frames * self.step_dim * self.step_delay} seconds")
             print(f"Actual scan time   = {round(end_time - start_time, 6)} seconds\n")
 
-            # reset galvo positions to offset:
+            # reset trigger and galvo positions to offset:
+            rc = ljm.eWriteName(self.handle, self.tr_source_addr, 0)  # send 0 just in case to stop any input
             self.set_offset_pos()
 
         except ljm.LJMError:
@@ -577,6 +635,7 @@ class T7:
             #err = ljm.eStreamStop(self.handle)
             self.close_labjack_connection()
             raise
+
 
     # Sets galvos to set offset positions 
     def set_offset_pos(self):
@@ -590,6 +649,9 @@ class T7:
         else:
             # reset galvo positions to offset:
             self.set_offset_pos()
+
+            # stop stream in case it was active  # TODO: check if stopping a stream that is not active raises an error
+            err = ljm.eStreamStop(t7.handle)
 
             # clear trigger source voltage:
             ljm.eWriteName(self.handle, self.tr_source_addr, 0)  # send 0 just in case to stop any input
@@ -630,46 +692,49 @@ class SafetyTests:
                 print(f"Error: Negative voltage ({val}V) found in list for DAC!")
                 t7.abort_scan = True
 
-    def check_cmd_list(self):
-        if len(t7.aAddresses) != len(t7.aValues):
+    # MULTI-DONE
+    def multi_check_cmd_list(self, addresses, values, check_txt=""):  # check_cmd_list(self):
+        print(check_txt)
+
+        if len(addresses) != len(values):
             print("ERROR. NOT SAME COMMAND LIST LENGTHS. MISALIGNMENT DANGER.")
             t7.abort_scan = True
 
-        for i in range(len(t7.aAddresses)):
-            if t7.aAddresses[i] == t7.tr_source_addr:
-                if t7.aValues[i] != 0 and t7.aValues[i] != 1:
+        for i in range(len(addresses)):
+            if addresses[i] == t7.tr_source_addr:
+                if values[i] != 0 and values[i] != 1:
                     print("ERROR. INVALID VALUE FOR EDGE SOURCE VALUE")
                     t7.abort_scan = True
 
-            elif t7.aAddresses[i] == t7.tr_sink_addr:
+            elif addresses[i] == t7.tr_sink_addr:
                 print("ERROR. SINK SHOULD NOT BE A COMMAND TARGET ADDRESS")
                 t7.abort_scan = True
 
-            elif t7.aAddresses[i] == t7.wait_address:
-                if t7.aValues[i] < 100 and t7.aValues[i] != 0:
-                    print("ERROR. ", t7.aValues[i], " WAIT VALUE IS TOO SMALL.")
+            elif addresses[i] == t7.wait_address:
+                if values[i] < 100 and values[i] != 0:
+                    print("ERROR. ", values[i], " WAIT VALUE IS TOO SMALL.")
                     t7.abort_scan = True
 
-            elif t7.aAddresses[i] == t7.step_addr:
-                if abs(t7.aValues[i]) > 4:
+            elif addresses[i] == t7.step_addr:
+                if abs(values[i]) > 4:
                     print("ERROR. VALUE TOO BIG")
                     t7.abort_scan = True
 
-            elif t7.aAddresses[i] == t7.sine_addr:
+            elif addresses[i] == t7.sine_addr:
                 print("ERROR. SINE VALUE IN COMMAND LIST")
                 t7.abort_scan = True
-                if abs(t7.aValues[i]) > 4:
+                if abs(values[i]) > 4:
                     print("ERROR. VALUE TOO BIG")
 
-            elif (t7.aAddresses[i] == t7.q_M101_addr) or (t7.aAddresses[i] == t7.q_M102_addr):
-                if t7.aValues[i] != 0 and t7.aValues[i] != 1:
+            elif (addresses[i] == t7.q_M101_addr) or (addresses[i] == t7.q_M102_addr):
+                if values[i] != 0 and values[i] != 1:
                     print("ERROR. MARKER VALUE ERROR. MUST BE IN {0,1}")
                     t7.abort_scan = True
 
-            elif t7.aAddresses[i] == "STREAM_ENABLE" or t7.aAddresses[i] == "STREAM_NUM_SCANS":
+            elif addresses[i] == "STREAM_ENABLE" or addresses[i] == "STREAM_NUM_SCANS":
                 pass
             else:
-                print(t7.aAddresses[i], "... Address not recognized or checked for in 'check_cmd_list()'. Aborting scan.")
+                print(addresses[i], "... Address not recognized or checked for in 'check_cmd_list()'. Aborting scan.")
 
                 t7.abort_scan = True
 
@@ -684,16 +749,42 @@ def plot_values():
     plt.plot(t7.sine_values)
     plt.plot(t7.sine_values, 'r.', label="sine values (in buffer)")
     plt.plot(t7.step_values)
-    plt.plot(t7.step_values, 'g.',  label="step values ")
+    plt.plot(t7.step_values, 'g.',  label="step values OG")
     plt.legend()
     plt.xlabel("index")
     plt.ylabel("command voltage")
-    plt.show()
+
+def plot_values_up():
+    plt.figure()
+    plt.plot(t7.sine_values)
+    plt.plot(t7.sine_values, 'r.', label="sine values (in buffer)")
+    plt.plot(t7.step_values_up)
+    plt.plot(t7.step_values_up, 'g.',  label="step values UP")
+    plt.legend()
+    plt.xlabel("index")
+    plt.ylabel("command voltage")
+
+def plot_values_down():
+    plt.figure()
+    plt.plot(t7.sine_values)
+    plt.plot(t7.sine_values, 'r.', label="sine values (in buffer)")
+    plt.plot(t7.step_values_down)
+    plt.plot(t7.step_values_down, 'g.',  label="step values DOWN")
+    plt.legend()
+    plt.xlabel("index")
+    plt.ylabel("command voltage")
+
 
 
 # 1) Initiates labjack class
 t7 = T7()
-# 2) Prepare and perform scan 
-t7.main_galvo_scan()
-# 3) Terminates labjack connection  
+# 2) Prepare and perform scan
+try:
+    t7.main_galvo_scan()
+except:
+    # reset if script encounters an error and exit out
+    t7.close_labjack_connection()
+    raise
+
+# 3) Terminates labjack connection
 t7.close_labjack_connection()
