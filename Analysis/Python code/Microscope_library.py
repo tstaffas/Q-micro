@@ -5,6 +5,8 @@ from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
 from scipy.signal import convolve2d
 import lmfit.models as fitModels  #Packages used for curve fitting  # ex. GaussianModel, ConstantModel, SkewedGaussianModel
+from PIL import Image  # for gif
+import glob # for gif
 
 # Packages for ETA backend
 import json
@@ -33,15 +35,16 @@ class File:
         return eta_engine
 
     @staticmethod
-    def get_timres_name(folder, freq, clue):
+    def get_timres_name(folder, num, freq, clue):
         """ searches for timeres filename (that fits params) in a folder and returns the name """
         for filename in os.listdir(folder):  # checks all files in given directory (where data should be)
             if clue in filename:
                 # NOTE: "clue" helps us differentiate between two with the same frequency (e.g. clue="figure_8")
-                if f"sineFreq({freq})" in filename:
-                    if ".timeres" in filename:
-                        print("Using datafile:", filename)
-                        return folder + filename    # this is our found timetag_file!
+                if f"numFrames({num})" in filename:
+                    if f"sineFreq({freq})" in filename:
+                        if ".timeres" in filename:
+                            print("Using datafile:", filename)
+                            return folder + filename    # this is our found timetag_file!
         print("No matching timeres file found! :(")
         exit()
 
@@ -107,131 +110,23 @@ class Data:
         row = result[ch_sel]  # [result['X']]
         return row, pos, context, run_flag
 
-    @staticmethod
-    def eta_segmented_analysis_noise(timetag_file, ch_sel, eta_engine, bins, dimY, flip):
-
-        if bins > dimY:
-            compress = True  # NOTE: this is if bins >> dimX, and we want a quadratic even pixel size
-        else:
-            compress = False  # TODO: need to test if "else -> compress" works!
-
-        # ------ETA PROCESSING-----
-        pos = 0
-        context = None
-        run_flag = True
-        image_combined_no_flip = []
-        image_combined_with_flip = []
-
-        while run_flag:
-            row, pos, context, run_flag = Data.get_row_from_eta(eta_engine, timetag_file, pos, context, ch_sel, run_flag)
-            if pos is None:
-                print("Noise, No new elements left to extract from ETA\n")
-                break
-
-            combined_no_flip = list(np.array(row[:int(bins / 2)]) + np.array(row[int(bins / 2):]))
-            combined_flipped = list(np.array(row[:int(bins / 2)]) + np.array(np.flip(row[int(bins / 2):])))
-
-            if compress:
-                image_combined_no_flip.append(Process.compress_bins_into_pixels(bins, pixY=dimY, row=combined_no_flip))
-                image_combined_with_flip.append(Process.compress_bins_into_pixels(bins, pixY=dimY, row=combined_flipped))
-            else:
-                image_combined_no_flip.append(combined_no_flip)
-                image_combined_with_flip.append(combined_flipped)
-
-        return image_combined_no_flip, image_combined_with_flip
-
-    @staticmethod
-    def eta_segmented_analysis_countrate(timetag_file, ch_sel, eta_engine, bins, dimY, flip, noise=0):
-        print("Starting Analysis")
-
-        # ------ETA PROCESSING-----
-        pos = 0
-        context = None
-        run_flag = True
-        list_countrate = []
-        filtered_countrate = []
-
-        while run_flag:
-            row, pos, context, run_flag = Data.get_row_from_eta(eta_engine, timetag_file, pos, context, ch_sel, run_flag)
-            if pos is None:
-                print("Countrate, No new elements left to extract from ETA\n")
-                break
-            # ----
-            # add to full countrate list
-            list_countrate += list(row)
-
-            filtered_countrate += list(Process.filter_countrate_row(bins, pixY=dimY, row=row[:int(bins / 2)], noise=noise))
-            filtered_countrate += list(Process.filter_countrate_row(bins, pixY=dimY, row=row[int(bins / 2):], noise=noise))
-
-        print("All elements processed.\nAnalysis Finished")
-        return list_countrate, filtered_countrate
-
-    @staticmethod
-    def eta_segmented_analysis_extra(timetag_file, ch_sel, eta_engine, bins, dimY, flip):
-        print("Starting Analysis")
-
-        if bins > dimY:
-            compress = True  # NOTE: this is if bins >> dimX, and we want a quadratic even pixel size
-        else:
-            compress = False  # FIXME: need to test if "else -> compress" works!
-
-        #n_sweeps = 2    # how many half periods we do before stepping to next x value   # TODO: IMPLEMENT THIS IDEA EVERYWHERE!!!
-
-        # ------ETA PROCESSING-----
-        pos = 0
-        context = None
-        run_flag = True
-
-        countrate_combined = []  # returning this instead
-
-        half_combined_no_flip = []
-        half_combined_with_flip = []
-        second_half_flipped_img = []
-        first_half_img = []
-        second_half_img = []
-
-        while run_flag:
-
-            row, pos, context, run_flag = Data.get_row_from_eta(eta_engine, timetag_file, pos, context, ch_sel, run_flag)
-
-            if pos is None:
-                print("Extra, No new elements left to extract from ETA\n")
-                break
-
-            # ----
-            first_half = row[:int(bins / 2)]  # even row
-            second_half = row[int(bins / 2):]  # odd row
-            second_half_flipped = np.flip(second_half.copy())
-            combined_no_flip = list(np.array(first_half) + np.array(second_half))
-            combined_flipped = list(np.array(first_half) + np.array(second_half_flipped))
-
-            if compress:
-                first_half_img.append(Process.compress_bins_into_pixels(bins, dimY, first_half))
-                second_half_img.append(Process.compress_bins_into_pixels(bins, dimY, second_half))
-                second_half_flipped_img.append(Process.compress_bins_into_pixels(bins, dimY, second_half_flipped))
-                half_combined_no_flip.append(Process.compress_bins_into_pixels(bins, dimY, combined_no_flip))
-                half_combined_with_flip.append(Process.compress_bins_into_pixels(bins, dimY, combined_flipped))
-
-            else:
-                first_half_img.append(first_half)
-                second_half_img.append(second_half)
-                second_half_flipped_img.append(second_half_flipped)  # TODO: check is we need to do list() for flipped
-                half_combined_no_flip.append(combined_no_flip)
-                half_combined_with_flip.append(combined_flipped)
-
-            if flip:
-                countrate_combined += combined_flipped
-            else:
-                countrate_combined += combined_no_flip
-
-        first_half_img_corrected = list(np.flip(first_half_img))
-        second_half_img_corrected = list(np.flip(second_half_img))
-
-        return countrate_combined, first_half_img, second_half_img, half_combined_no_flip, half_combined_with_flip, \
-               first_half_img_corrected, second_half_img_corrected, second_half_flipped_img
-
 class MultiFrame:
 
+    @staticmethod
+    def add_to_gif(location, folder):
+
+        # Create the frames
+        frames = []
+        imgs = glob.glob(location+folder+"/*.png")
+        for i in imgs:
+            new_frame = Image.open(i)
+            frames.append(new_frame)
+
+        # Save into a GIF file that loops forever
+        frames[0].save(location + "/gif"+folder[4:]+".gif", format='GIF',
+                       append_images=frames[1:],
+                       save_all=True,
+                       duration=200, loop=0)
     @staticmethod
     def eta_segmented_analysis_multiframe(const, return_full):
         """Extracts and processes one frame at a time. Due to this we have to do all image processing within the function
@@ -251,16 +146,12 @@ class MultiFrame:
         image_nr = 0      # tracks which frame is being processed
 
         # step 1) repeat extraction and creations of frames while there are more frames to be created
-
-        # for i in range(nr_frames()):   # note: maybe alternative condition
-        #while image_nr < const["nr_frames"]: # note: maybe alternative condition
-        while pos is not None:  #
-
+        while image_nr < const["nr_frames"]:  # note: maybe alternative condition
             run_flag = True         # useful if runflag condition is used instead of "break"
             countrate_matrix = []   # to save data the same way it comes in (alternative to countrate list with more flexibility)
             row_nr = 0
             image_nr += 1           # note: image number starts at 1 and not 0 (i.e. not regular indexing)
-            print(f"\n-------\nProcessing frame {image_nr}:")
+            #print(f"\n-------\nProcessing frame {image_nr}:")
 
             # step 2) Extracting rows until image is filled
             while run_flag:
@@ -278,23 +169,27 @@ class MultiFrame:
 
                 if row_nr == const["dimX"]:
                     # Note: At this point we have filled one full image and want to move onto the next image
-                    print(f"Frame {image_nr} complete!")
+                    print(f"Frame {image_nr}/{const['nr_frames']} complete!")
                     break      # breaks out of inner while loop
 
-            if len(countrate_matrix) > 0:  # FIXME: this is a quick fix so we don't process an empty image on last iteration
+            if len(countrate_matrix) > 0:  # TODO: check if we still need this with our new method (outer) while condition
+
+                # FLIP EVERY ODD FRAME:
+                if image_nr % 2 == 0:  # note: indexing starts att 1 so odd frames are at even values of 'image_nr'
+                    countrate_matrix = np.flip(np.array(countrate_matrix))    # eller countrate_matrix.reversed()
 
                 # SAVE EXTRACTED FRAME DATA TO TEXTFILE:
-                File.write_to_file(matrix_data=countrate_matrix, file_name=f"countrate_matrix_frame_{image_nr}", folder_name=const["save_location"]+"/Countrate_Data")  # , file_path=None, folder_name="")
+                #File.write_to_file(matrix_data=countrate_matrix, file_name=f"countrate_matrix_frame_{image_nr}", folder_name=const["save_location"]+"/Countrate_Data")  # , file_path=None, folder_name="")
                 # Note: How to retrieve countrate data from file: --> # countrate_matrix = File.read_from_file(file_name="Analysed_Data/countrate_matrix_frame_1.txt")  # , file_path=None, folder_name="")
 
                 # PROCESS IMAGES:
                 filtered_adjusted_matrix, raw_adjusted_matrix, raw_non_speed = MultiFrame.process_image_data(countrate_matrix, const, t_from_even_y, image_nr)
-                # Alternative: return full --> # countrate_raw, countrate_filtered, countrate_matrix, img_no_flip, img_with_flip, raw_adjusted_matrix, filtered_adjusted_matrix, flipped_adjusted_matrix, const = MultiFrame.process_image_data(countrate_matrix, const, t_from_even_y, image_nr)
 
                 # PLOT AND SAVE IMAGES:
-                Plot.image_heatmap(np.array(filtered_adjusted_matrix), fig_title="filtered, speed", title=f"Multi, frame {image_nr} - Filtered speed adjusted", save_fig=True, save_loc=const["save_location"]+"/Images/Filtered_Speed", save_name=f"Frame {image_nr}")
-                Plot.image_heatmap(np.array(raw_adjusted_matrix),      fig_title="raw, speed",      title=f"Multi, frame {image_nr} - Raw speed adjusted",      save_fig=True, save_loc=const["save_location"]+"/Images/Raw_Speed",      save_name=f"Frame {image_nr}")
-                Plot.image_heatmap(np.array(raw_non_speed),            fig_title="raw, non-speed",  title=f"Multi, frame {image_nr} - Raw non-speed adjusted",  save_fig=True, save_loc=const["save_location"]+"/Images/Raw_Non-Speed",  save_name=f"Frame {image_nr}")
+                showfig = False   # whether to display frames
+                # note: below two functions are needed to save the figs
+                Plot.image_heatmap(np.array(raw_adjusted_matrix),      fig_title="raw, speed",      title=f"Raw speed adjusted - {image_nr}",      save_fig=True, save_loc=const["save_location"]+"/Images/Raw_Speed",      save_name=f"Frame {image_nr}", showfig=showfig)
+                Plot.image_heatmap(np.array(raw_non_speed),            fig_title="raw, non-speed",  title=f"Raw non-speed adjusted - {image_nr}",  save_fig=True, save_loc=const["save_location"]+"/Images/Raw_Non-Speed",  save_name=f"Frame {image_nr}", showfig=showfig)
 
                 #    ---- MICKES SPEED METHOD. Not working yet.. -----
                 #Sbins = const["bins"]/const['dimX']  # new -- Sbins is the number of bins per half period (per swipe up or swipe down). This must be constant
@@ -307,13 +202,20 @@ class MultiFrame:
                 #Plot.image_heatmap(np.array(i_matrix3), fig_title="Micke, speed", title=f"Micke, Multi, frame {image_nr} - speed adjusted")
                 #    -----
 
-                print(f"\nAll elements processed for frame {image_nr}.")
-                plt.show()
+                #print(f"\nAll elements processed for frame {image_nr}.")
+                #plt.show()
+
+        # Double-check we have no data left that we missed
+        row, pos, context, run_flag = Data.get_row_from_eta(eta_engine, const["timetag_file"], pos, context, const["ch_sel"], run_flag)
+        if pos is None:
+            print("All values extracted!")
 
         print("Complete with ETA.")
 
-        #if return_full:     # NOTE: temporary return while we only have one image --> later we have to restructure the code
-        #   return countrate_raw, countrate_filtered, countrate_matrix, img_no_flip, img_with_flip, raw_adjusted_matrix, filtered_adjusted_matrix, flipped_adjusted_matrix, const   # we return const because it's updated with noise
+        # Take saved images and make a gif:
+        #https://pythonprogramming.altervista.org/png-to-gif/?doing_wp_cron=1693215726.9461410045623779296875
+        MultiFrame.add_to_gif(location=const["save_location"] + "/Images", folder="/Raw_Speed")
+        MultiFrame.add_to_gif(location=const["save_location"] + "/Images", folder="/Raw_Non-Speed")
 
     @staticmethod
     def process_image_data(countrate_matrix, const, t_from_even_y, image_nr, return_full=False):
@@ -355,30 +257,6 @@ class MultiFrame:
 
         #print(len(countrate_list), len(flipped_countrate))
         return countrate_list, filtered_countrate, flipped_countrate
-
-    """@staticmethod
-    def noise_analysis(countrate_matrix, bins, dimY, noise_tolerance):
-         '''given the data matrix we can redo/simulate the ETA data extraction '''
-        if bins > dimY:
-            compress = True     # NOTE: this is if bins >> dimX, and we want a quadratic even pixel size
-        else:
-            compress = False
-
-        image_combined_no_flip = []
-        image_combined_with_flip = []
-
-        for data_row in countrate_matrix:
-            combined_no_flip = list(np.array(data_row[:int(bins / 2)]) + np.array(data_row[int(bins / 2):]))
-            combined_flipped = list(np.array(data_row[:int(bins / 2)]) + np.array(np.flip(data_row[int(bins / 2):])))
-
-            if compress:
-                image_combined_no_flip.append(Process.compress_bins_into_pixels(bins, pixY=dimY, row=combined_no_flip))
-                image_combined_with_flip.append(Process.compress_bins_into_pixels(bins, pixY=dimY, row=combined_flipped))
-            else:
-                image_combined_no_flip.append(combined_no_flip)
-                image_combined_with_flip.append(combined_flipped)
-
-        return image_combined_no_flip, image_combined_with_flip, noise"""
 
     @staticmethod
     def flip_no_flip_images(countrate_matrix, bins, dimY):
@@ -711,11 +589,11 @@ class Construct:
                     combined_row = np.array(sweep_rows[:, 0]) + np.array(sweep_rows[:, 1])
 
                 new_matrix.append(combined_row)
-            if print_progress:
+            """if print_progress:
                 print("\nImage complete:")
                 print(f"Progress: {len(new_matrix)} matrix rows and ({count_idx}/{len(countrate)}) values into image matrix")
                 print(f"Total time spent: {total_time * 10e-12} seconds, out of {const['dimX'] * const['period_ps'] * 10e-12} seconds for full frame")
-                print(f"Missing time: {const['dimX'] * const['period_ps'] - total_time} picoseconds")
+                print(f"Missing time: {const['dimX'] * const['period_ps'] - total_time} picoseconds")"""
             return new_matrix, remaining_pixel_times
         except:
             print("\nERROR:")
@@ -1009,7 +887,7 @@ class Plot:
         Plot.edge_detect(image_combined_no_flip, blur_matrix, ima_matrix, edge_matrix, edge_matrix_laplace, np.array(noise_mask))
 
     @staticmethod
-    def image_heatmap(matrix, title="", fig_title="", cmap='hot', return_fig=False, save_fig=False, save_loc="misc", save_name="misc"):
+    def image_heatmap(matrix, title="", fig_title="", cmap='hot', return_fig=False, save_fig=False, save_loc="misc", save_name="misc", showfig=False):
         """Generic method for any imshow() we want to do"""
         fig = plt.figure("Q.Plot.image - " + fig_title)
         plt.imshow(matrix, cmap=cmap)
@@ -1017,8 +895,6 @@ class Plot:
         if save_fig:
             save_image_folder = File.get_image_path(save_loc)
             plt.savefig(save_image_folder.joinpath(f'{save_name}'+".png"))
-        if return_fig:
-            return fig
 
     @staticmethod
     def full_countrate(full_countrate):
