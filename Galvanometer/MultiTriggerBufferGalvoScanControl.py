@@ -32,43 +32,41 @@ import matplotlib.pyplot as plt
 #   > read back what our stream scan rate is
 
 # ------------------------------------------------------------
-# TODO NOW:
-#   > check and finish all buffer configs for burst stream
-#   > implement two versions of "populate_scan_cmd_list_burst()"
-#       ->  try both and choose!
 #   > fix a nicer solution to "calc_wait_delays", with variables (maybe %)
 #       -> calculate and check that it is correct! (maybe plot and sum up to a period?)
 #       -> when complete, move out of function and directly into "get_scan_params()"
 #       -> sub in the wait delay variables in function: "add_wait_delay()"
 #           --> CHECK THAT RANGE INT ROUNDING DOESN'T MESS WITH TOTAL DELAY
 #           --> COUNT OR MAKE "int(self.step_delay / 0.1)" something we use to calculate the remaining delay
-#   > check function "get_step_values()":
-#       -> len(self.step_values) == self.step_dim
-#       -> CORRECT DELAY IS USED AND CORRECT VALUES GIVEN  (plotting?)
-#   > Go through entire logic and make sure no bad values can be sent to servo amps
-#   > !! ANSWER CAROLS EMAIL FOR FKS SAKE !!
 # ------------------------------------------------------------
 
 # UPDATED 13 AUGUST 2023
+#    if len(self.step_values) == self.step_dim
 
 class Raster:  # USER CAN CHANGE SCAN CLASS PARAMETERS BELOW!!
+    # Note, scans todo:
+    #  - send in slow waveform after longer inactivity of Galvo
+    #  - scan something less symmetrical to check if we should flip or not
+    #  - scan same settings with different intensities to see how much image is affected
+    #  - do multiframe scan
 
-    scan_name = 'multi_trigger_digit_8_double_marker'     # Info about image being scanned: {'digit', 'lines'}
+    scan_name = "scrap_warmup_galvo"  #"'multi_frame_digit_8_double_marker'     # Info about image being scanned: {'digit', 'lines'}
     num_frames = 2          # NOTE: NEW PARAMETER!!  how many images we want to scan
-    sine_freq = 5
+    sine_freq = 1
     sine_voltage = 0.3      # amplitude, max value = 0.58  -->  galvo angle=voltage/0.22
     step_voltage = 0.3      # +- max and min voltages for stepping  -->   galvo angle=voltage/0.22
     step_dim = 100          # TODO check if there is a limit here???  step_dim = 1000/sine_freq ???
 
-    recordScan = True       # to connect to qutag to record data
-    ping101 = True           # marker AFTER  step, after sweep ends
-    ping102 = True            # marker BEFORE step, before sweep starts
+    recordScan = True       # default = True --> To connect to qutag to record data
+    ping101 = True          # default = True --> marker AFTER  step, after sweep ends
+    ping102 = True          # default = True --> marker BEFORE step, before sweep starts
 
     # -----Extra params that shouldn't change but can be for debugging--------
-    pingQuTag = True
-    useTrigger = True
-    diagnostics = False     # timeres file when False vs. txt file when True
-    plotting = False
+    pingQuTag = True        # default = True
+    useTrigger = True       # default = True
+    diagnostics = False     # default = False. Creates timeres file when False vs. txt file when True
+    plotting = False        # default = False
+    offline = True          # default = False.  This is so we can run the code without connection to qutag or labjack. for checking errors and values generated
     currDate = date.today().strftime("%y%m%d")
     currTime = time.strftime("%Hh%Mm%Ss", time.localtime())
     filename = f'{scan_name}_sineFreq({sine_freq})_numFrames({num_frames})_sineAmp({sine_voltage})_stepAmp({step_voltage})_stepDim({step_dim})_date({currDate})_time({currTime})'
@@ -112,23 +110,28 @@ class T7:
         SafetyTests().check_voltages()  # MOST IMPORTANT SO WE DON'T DAMAGE DEVICE WITH TOO HIGH VOLTAGE
 
         if self.scanVariables.plotting:
+            self.step_values_up = self.step_values.copy()  # NOTE: NEW ADDITIONS
+            self.step_values_down = self.step_values.copy()  # NOTE: NEW ADDITIONS
+            self.step_values_down.reverse()  # NOTE: NEW ADDITIONS
             #plot_values()
             plot_values_up()
             plot_values_down()
             plt.show()
+            exit()
 
         if not self.abort_scan:
 
             #print("\nStep 4) Opening labjack connection")
-            self.open_labjack_connection()
-            #err = ljm.eStreamStop(self.handle)
+            if not self.offline:
+                self.open_labjack_connection()  # NOTE ONLINE ONLY
 
             #print("\nStep 6) Populating command list.")
             self.multi_populate_scan_cmd_list_burst()
             # self.multi_populate_scan_lists()  #### NEW NAME???
 
             #self.populate_buffer_stream()
-            self.fill_buffer_stream()
+            if not self.offline:
+                self.fill_buffer_stream()   # NOTE ONLINE ONLY
 
             # Double check that scan command lists are safe
             #SafetyTests().multi_check_cmd_list(self.aAddresses, self.aValues, check_txt="OG Check")
@@ -138,19 +141,27 @@ class T7:
             if self.abort_scan:
                 return
 
-            if self.useTrigger:  # alternative is that we use "STREAM_ENABLE" as a sort of trigger
+            if self.useTrigger and not self.offline:  # alternative is that we use "STREAM_ENABLE" as a sort of trigger
                 #print("Prepping stream trigger")
-                self.configure_stream_trigger()
+                self.configure_stream_trigger()    # NOTE ONLINE ONLY
 
             # Finish stream configs , replaces: ljm.eStreamStart(self.handle, self.b_scansPerRead,...)
-            self.configure_stream_start()
+            if not self.offline:
+                self.configure_stream_start()    # NOTE ONLINE ONLY
 
-            if self.recordScan:
+            if self.recordScan and not self.offline:
                 print("\nStep 5) Creating socket connection with Qutag server.")
-                self.socket_connection()
+                self.socket_connection()   # NOTE ONLINE ONLY
+
+            # AGAIN FINAL CHECK, MAYBE REMOVE LATER
+            SafetyTests().multi_check_cmd_list(self.aAddressesUp, self.aValuesUp, check_txt="Up Check")
+            SafetyTests().multi_check_cmd_list(self.aAddressesDown, self.aValuesDown, check_txt="Down Check")
+            SafetyTests().check_voltages()  # MOST IMPORTANT SO WE DON'T DAMAGE DEVICE WITH TOO HIGH VOLTAGE
+            # ----
 
             #print("\nStep 8) Performing scan...")
-            self.multi_start_scan()
+            if not self.offline and not self.abort_scan:
+                self.multi_start_scan()    # NOTE ONLINE ONLY
 
     # Step 1) Sets all parameters depending on selected scan pattern and scan type
     # MULTI-DONE
@@ -170,6 +181,7 @@ class T7:
         self.ping101 = self.scanVariables.ping101  # marker before step
         self.ping102 = self.scanVariables.ping102  # marker after step
         self.num_frames = self.scanVariables.num_frames         # NOTE: NEW PARAM # how many frames/images we want to scan
+        self.offline = self.scanVariables.offline
         # --------------- PLACEHOLDER VALUES --------------------------------------------
         # List of x and y values, and lists sent to Labjack:
         self.step_values = []           # values to step through
@@ -696,10 +708,34 @@ class SafetyTests:
     def multi_check_cmd_list(self, addresses, values, check_txt=""):  # check_cmd_list(self):
         print(check_txt)
 
+        # 1) WE CHECK THE COMMAND LIST LENGTHS
         if len(addresses) != len(values):
             print("ERROR. NOT SAME COMMAND LIST LENGTHS. MISALIGNMENT DANGER.")
             t7.abort_scan = True
 
+        # 2) WE CHECK THE STEPS  # TODO: maybe fix so we don't repeat this several times. although fix later
+        for step in range(t7.step_dim):
+            if t7.step_values[step] > 4:
+                print("ERROR. STEP VALUE TOO LARGE:", t7.step_values[step])
+                t7.abort_scan = True
+            if t7.step_values_up[step] > 4:
+                print("ERROR. STEP UP VALUE TOO LARGE:", t7.step_values_up[step])
+                t7.abort_scan = True
+            if t7.step_values_down[step] > 4:
+                print("ERROR. STEP DOWN VALUE TOO LARGE:", t7.step_values_down[step])
+                t7.abort_scan = True
+
+        if len(t7.step_values) != t7.step_dim:
+            print("ERROR. NOT ENOUGH STEP VALUES.", len(t7.step_values), "!=",  t7.step_dim)
+            t7.abort_scan = True
+        if len(t7.step_values_up) != t7.step_dim:
+            print("ERROR. NOT ENOUGH STEP VALUES UP. ", len(t7.step_values_up), "!=",  t7.step_dim)
+            t7.abort_scan = True
+        if len(t7.step_values_down) != t7.step_dim:
+            print("ERROR. NOT ENOUGH STEP VALUES DOWN.", len(t7.step_values_down), "!=",  t7.step_dim)
+            t7.abort_scan = True
+
+        # 3) WE CHECK THE ADDRESSES IN
         for i in range(len(addresses)):
             if addresses[i] == t7.tr_source_addr:
                 if values[i] != 0 and values[i] != 1:
@@ -734,13 +770,14 @@ class SafetyTests:
             elif addresses[i] == "STREAM_ENABLE" or addresses[i] == "STREAM_NUM_SCANS":
                 pass
             else:
-                print(addresses[i], "... Address not recognized or checked for in 'check_cmd_list()'. Aborting scan.")
+                print(f"'{addresses[i]}' ... Address not recognized or checked for in 'check_cmd_list()'. Aborting scan.")
 
                 t7.abort_scan = True
 
         if t7.abort_scan:
             print("\nFinal Check Failed...\n")
         else:
+            t7.abort_scan = True   # TEST
             print("\nFinal Check Succeeded!\n")
 
 
@@ -759,7 +796,7 @@ def plot_values_up():
     plt.plot(t7.sine_values)
     plt.plot(t7.sine_values, 'r.', label="sine values (in buffer)")
     plt.plot(t7.step_values_up)
-    plt.plot(t7.step_values_up, 'g.',  label="step values UP")
+    plt.plot(t7.step_values_up, 'g*',  label="step values UP")
     plt.legend()
     plt.xlabel("index")
     plt.ylabel("command voltage")
@@ -769,11 +806,10 @@ def plot_values_down():
     plt.plot(t7.sine_values)
     plt.plot(t7.sine_values, 'r.', label="sine values (in buffer)")
     plt.plot(t7.step_values_down)
-    plt.plot(t7.step_values_down, 'g.',  label="step values DOWN")
+    plt.plot(t7.step_values_down, 'g*',  label="step values DOWN")
     plt.legend()
     plt.xlabel("index")
     plt.ylabel("command voltage")
-
 
 
 # 1) Initiates labjack class
