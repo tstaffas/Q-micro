@@ -24,8 +24,8 @@ timetag_file = None             # Note: let this be None if you want to use "clu
 #timetag_file = 'digit_6_sineFreq(10)_numFrames(4)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(230828)_time(09h34m06s).timeres'
 
 # Scan parameters:
-nr_frames = 4
-freq = 10                      # {1, 4, 10, 20, 30, 50, 100, 100}   # note: 30 is missing 6 rows  # FIXME so it works if we don't have all dimX rows or dim Y pixels
+nr_frames = 10
+freq = 50                      # {1, 4, 10, 20, 30, 50, 100, 100}   # note: 30 is missing 6 rows  # FIXME so it works if we don't have all dimX rows or dim Y pixels
 ampX = 0.3                      # --> step values between -0.3 and 0.3
 ampY = 0.3                      # --> sine values between -0.3 and 0.3
 dimX = 100                      # how many (stepwise) steps we take in scan
@@ -34,7 +34,7 @@ bins = 20000                    # how many bins/containers we get back for one p
 ch_sel = "h2"
 
 # Options:
-use_flip = True                # flip every other sweep (1 sweep = half period) # NOTE from Julia: I strongly think that we should NOT flip
+use_flip = True                # flip every other sweep (1 sweep = half period)
 noise_tolerance = 0.09  # 0.05    # scale 0-1, lower bound of values that are considered noise (ex. 0.09 = 9% lowest values are noise)
 
 # NOTE: BELOW MIGHT NOT BE OF USE FOR SIMPLE ANALYSIS

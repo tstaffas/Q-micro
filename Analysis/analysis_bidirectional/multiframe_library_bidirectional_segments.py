@@ -245,7 +245,6 @@ class MultiFrame:
 
 
         # ------ETA PROCESSING-----
-
         print("Starting MultiFrame Analysis")
         pos = 0           # internal ETA tracker (-> maybe tracks position in data list?)
         context = None    # tracks info about ETA logic, so we can extract and process data with breaks (i.e. in parts)
@@ -268,6 +267,7 @@ class MultiFrame:
                 row_nr += 1
                 row, pos, context, run_flag = Data.get_row_from_eta(eta_engine, const["timetag_file"], pos, context, const["ch_sel"], run_flag)
 
+                #print("hi")
                 if pos is None:
                     # Note: At this point we have gone through all data available in ETA file
                     print(f"No new elements left to extract from ETA. Ended on row {str(row_nr)}.")
