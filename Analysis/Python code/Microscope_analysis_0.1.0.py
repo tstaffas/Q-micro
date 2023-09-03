@@ -12,16 +12,17 @@ import Microscope_library as Q
 # ------------ PARAMETERS AND CONSTANTS --------------
 eta_recipe = 'multiframe_recipe_bidirectional_segments_0.0.4.eta'        # 'microscope_bidirectional_segments_0.0.3.eta'
 
-folder = "Data/230828/"             # Note: this is used to find the timeres file --> WRITE in your data folder location
+# Parameters to locate timeres files:
+folder = "Data/230828/"             # Note: this is used to find the timeres file --> WRITE in your own data folder location
 clue = "digit_6"                    # Note: this is used to help find the correct timeres file when only given frequency (ex: 'higher_power', 'digit_8', '13h44m23s')
-#       ^ex. for data in "230717": {"digit_8", "low", "high", "digit_6"}
+#       ^ex. for data in "230828": {"digit_6"}
 
 timetag_file = None                 # Note: let this be None if you want to use "clue" and "folder" to automatically find your file based on frequency
-#timetag_file = 'Data/230717/higher_power_multi_trigger_digit_8_double_marker_sineFreq(100)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(230717)_time(14h02m31s).timeres'
+#timetag_file = 'Data/230828/digit_6_sineFreq(10)_numFrames(10)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(230828)_time(10h28m37s).timeres'
 
 # Scan parameters:
-nr_frames = 10
-freq = 50
+nr_frames = 10   # OBS: SET VALUE TO USE DATAFILE
+freq = 10        # OBS: SET VALUE TO USE DATAFILE
 ampX = 0.3                      # --> step values between -0.3 and 0.3
 ampY = 0.3                      # --> sine values between -0.3 and 0.3
 dimX = 100                      # how many (stepwise) steps we take in scan

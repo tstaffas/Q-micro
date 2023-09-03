@@ -67,7 +67,7 @@ def eta_segmented_analysis_multiframe(const):
             if row_nr == const["dimX"]:
                 # Note: At this point we have filled one full image and want to move onto the next image
                 print(f"Frame {image_nr}/{const['nr_frames']} complete!")
-                break      # breaks out of inner while loop
+                break      # breaks out of inner while loop to process current frame and then starts on next frame
 
         #  step 3) Flip every odd frame since we scan in different directions
         if image_nr % 2 == 0:  # note: indexing starts att 1 so odd frames are at even values of 'image_nr'
@@ -81,15 +81,14 @@ def eta_segmented_analysis_multiframe(const):
         adjusted_matrix = speed_adjusted_matrix_timebased(countrate_matrix, t_from_even_y, const)
 
         # create and save images:   # note: below two functions are needed to save the figs
-        draw_image_heatmap(np.array(non_speed_matrix),       fig_title=f"non-speed adjusted - {const['freq']} Hz",  title=f"{const['freq']} Hz - non-speed adjusted - frame {image_nr}",  save_fig=True, save_loc=const["save_location"]+"/Original_Frames",  save_name=f"frame {image_nr}", showfig=False)
-        draw_image_heatmap(np.array(adjusted_matrix), fig_title=f"speed adjusted - {const['freq']} Hz",      title=f"{const['freq']} Hz - speed adjusted - frame {image_nr}",      save_fig=True, save_loc=const["save_location"]+"/Speed_Frames",      save_name=f"frame {image_nr}", showfig=False)
+        draw_image_heatmap(matrix=np.array(non_speed_matrix), title=f"Original image - {image_nr}/{const['nr_frames']}\nScan frame rate: {const['fps']} fps", fig_title=f"Non-speed adjusted - sine freq: {const['freq']} Hz", save_fig=True, save_loc=const["save_location"]+"/Original_Frames", save_name=f"frame {image_nr}")
+        draw_image_heatmap(matrix=np.array(adjusted_matrix),  title=f"Speed adjusted - {image_nr}/{const['nr_frames']}\nScan frame rate: {const['fps']} fps", fig_title=f"Speed adjusted - sine freq: {const['freq']} Hz",     save_fig=True, save_loc=const["save_location"]+"/Speed_Frames",    save_name=f"frame {image_nr}")
 
     print("Complete with ETA.")
 
     # Take saved images and make a gif:   source --> https://pythonprogramming.altervista.org/png-to-gif/?doing_wp_cron=1693215726.9461410045623779296875
     add_to_gif(location=const["save_location"], folder="/Speed_Frames", const=const)
     add_to_gif(location=const["save_location"], folder="/Original_Frames", const=const)
-
 
 # ----------- ETA DATA --------------
 def load_eta(recipe, **kwargs):
@@ -124,9 +123,9 @@ def get_row_from_eta(eta_engine, timetag_file, pos, context, ch_sel, run_flag):
 
 
 # ----------- DRAWING AND SAVING IMAGES --------------
-def draw_image_heatmap(matrix, title="", fig_title="", cmap='hot', return_fig=False, save_fig=False, save_loc="misc", save_name="misc", showfig=False):
+def draw_image_heatmap(matrix, title="", fig_title="", cmap='hot', save_fig=False, save_loc="misc", save_name="misc"):
     """Generic method for any imshow() we want to do"""
-    plt.figure("Q.Plot.image - " + fig_title)
+    plt.figure(fig_title)
     plt.imshow(matrix, cmap=cmap)
     plt.title(title)
     if save_fig:
@@ -140,10 +139,10 @@ def add_to_gif(location, folder, const):
         new_frame = Image.open(img)
         frames.append(new_frame)
 
+    chosen_fps = 10   # sped-up frame rate
     # Save into a GIF file that loops forever. gif delay time is equal to the frame time, in milliseconds
     frames[0].save(location + f"/{folder[1:-7]}_live_{const['fps']}_fps.gif", format='GIF', append_images=frames[1:], save_all=True, duration=const["frame_duration"]*1000, loop=0)   # duration given is milliseconds
-    frames[0].save(location + f"/{folder[1:-7]}_set_10_fps.gif", format='GIF', append_images=frames[1:], save_all=True, duration=100, loop=0)
-
+    frames[0].save(location + f"/{folder[1:-7]}_set_{chosen_fps}_fps.gif", format='GIF', append_images=frames[1:], save_all=True, duration=1000/chosen_fps, loop=0)  # param: duration=1000[ms]/n[fps].  10 fps => 100 duration
 
 # ----------- DATA PROCESSING: NON-SPEED ADJUSTED --------------
 def build_image_matrix(countrate_matrix, bins, dimY):
