@@ -44,29 +44,25 @@ import matplotlib.pyplot as plt
 #    if len(self.step_values) == self.step_dim
 
 class Raster:  # USER CAN CHANGE SCAN CLASS PARAMETERS BELOW!!
-    # Note, scans todo:
-    #  - send in slow waveform after longer inactivity of Galvo
-    #  - scan something less symmetrical to check if we should flip or not
-    #  - scan same settings with different intensities to see how much image is affected
-    #  - do multiframe scan
 
-    scan_name = "scrap_warmup_galvo"  #"'multi_frame_digit_8_double_marker'     # Info about image being scanned: {'digit', 'lines'}
-    num_frames = 2          # NOTE: NEW PARAMETER!!  how many images we want to scan
-    sine_freq = 1
+    scan_name = "digit_6_optotune_40mA_5mm_df"  #"'multi_frame_digit_8_double_marker'     # Info about image being scanned: {'digit', 'lines'}
+    #scan_name = "digit_6_optotune_40-120mA_(20mA_steps)_5mm_df_25bias"  #
+    num_frames = 9         # NOTE: NEW PARAMETER!!  how many images we want to scan
+    sine_freq = 10
     sine_voltage = 0.3      # amplitude, max value = 0.58  -->  galvo angle=voltage/0.22
     step_voltage = 0.3      # +- max and min voltages for stepping  -->   galvo angle=voltage/0.22
     step_dim = 100          # TODO check if there is a limit here???  step_dim = 1000/sine_freq ???
 
-    recordScan = True       # default = True --> To connect to qutag to record data
+    recordScan = True      # default = True --> To connect to qutag to record data
     ping101 = True          # default = True --> marker AFTER  step, after sweep ends
     ping102 = True          # default = True --> marker BEFORE step, before sweep starts
+    diagnostics = False    # default = False. Creates timeres file when False vs. txt file when True
 
     # -----Extra params that shouldn't change but can be for debugging--------
     pingQuTag = True        # default = True
     useTrigger = True       # default = True
-    diagnostics = False     # default = False. Creates timeres file when False vs. txt file when True
     plotting = False        # default = False
-    offline = True          # default = False.  This is so we can run the code without connection to qutag or labjack. for checking errors and values generated
+    offline = False          # default = False.  This is so we can run the code without connection to qutag or labjack. for checking errors and values generated
     currDate = date.today().strftime("%y%m%d")
     currTime = time.strftime("%Hh%Mm%Ss", time.localtime())
     filename = f'{scan_name}_sineFreq({sine_freq})_numFrames({num_frames})_sineAmp({sine_voltage})_stepAmp({step_voltage})_stepDim({step_dim})_date({currDate})_time({currTime})'
@@ -124,6 +120,7 @@ class T7:
             #print("\nStep 4) Opening labjack connection")
             if not self.offline:
                 self.open_labjack_connection()  # NOTE ONLINE ONLY
+                #err = ljm.eStreamStop(t7.handle)   #
 
             #print("\nStep 6) Populating command list.")
             self.multi_populate_scan_cmd_list_burst()
@@ -160,7 +157,7 @@ class T7:
             # ----
 
             #print("\nStep 8) Performing scan...")
-            if not self.offline and not self.abort_scan:
+            if not self.abort_scan:
                 self.multi_start_scan()    # NOTE ONLINE ONLY
 
     # Step 1) Sets all parameters depending on selected scan pattern and scan type
@@ -234,7 +231,7 @@ class T7:
         print("remaining delay:", round(self.step_delay - coveredDelay, 6), "?=", self.remaining_delay/1000000)
         # -----------------------
         # Expected scan time:
-        self.scanTime = (self.num_frames * self.step_dim * self.step_delay) + 5  # Expected time sent to qutag server    Note: it will be slightly higher than this which depends on how fast labjack can iterate between commands
+        self.scanTime = (self.num_frames*1.1 * self.step_dim * self.step_delay) + 5  # Expected time sent to qutag server    Note: it will be slightly higher than this which depends on how fast labjack can iterate between commands
 
     # Step 2) Returns a list of step and sine values that the scan will perform
     def get_step_values(self):
@@ -629,7 +626,6 @@ class T7:
                     rc1 = ljm.eWriteNames(self.handle, len(self.aAddressesUp), self.aAddressesUp, self.aValuesUp)  # step left to right (or bottom to top)
                 else:
                     rc2 = ljm.eWriteNames(self.handle, len(self.aAddressesDown), self.aAddressesDown, self.aValuesDown)  # step right to left (or top to bottom)
-                    # TODO: CHECK THAT WE RETRIGGER ON NEW FRAME^
 
             end_time = time.time()
 
@@ -663,7 +659,7 @@ class T7:
             self.set_offset_pos()
 
             # stop stream in case it was active  # TODO: check if stopping a stream that is not active raises an error
-            err = ljm.eStreamStop(t7.handle)
+            #err = ljm.eStreamStop(t7.handle)
 
             # clear trigger source voltage:
             ljm.eWriteName(self.handle, self.tr_source_addr, 0)  # send 0 just in case to stop any input
@@ -775,10 +771,9 @@ class SafetyTests:
                 t7.abort_scan = True
 
         if t7.abort_scan:
-            print("\nFinal Check Failed...\n")
+            print("Final Check Failed...\n")
         else:
-            t7.abort_scan = True   # TEST
-            print("\nFinal Check Succeeded!\n")
+            print("Final Check Succeeded!\n")
 
 
 def plot_values():
