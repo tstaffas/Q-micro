@@ -5,6 +5,9 @@ import pickle
 import numpy as np
 from datetime import date
 import matplotlib.pyplot as plt
+
+from liquid_lens_lib import OptoLens
+
 #import sys  # unsure what we thought we needed this for
 
 
@@ -43,23 +46,24 @@ import matplotlib.pyplot as plt
 # UPDATED 13 AUGUST 2023
 #    if len(self.step_values) == self.step_dim
 
+
 class Raster:  # USER CAN CHANGE SCAN CLASS PARAMETERS BELOW!!
 
     scan_name = "digit_6_optotune_40mA_5mm_df"  #"'multi_frame_digit_8_double_marker'     # Info about image being scanned: {'digit', 'lines'}
     #scan_name = "digit_6_optotune_40-120mA_(20mA_steps)_5mm_df_25bias"  #
-    num_frames = 9         # NOTE: NEW PARAMETER!!  how many images we want to scan
-    sine_freq = 10
+    num_frames = 3         # NOTE: NEW PARAMETER!!  how many images we want to scan
+    sine_freq = 2
     sine_voltage = 0.3      # amplitude, max value = 0.58  -->  galvo angle=voltage/0.22
     step_voltage = 0.3      # +- max and min voltages for stepping  -->   galvo angle=voltage/0.22
     step_dim = 100          # TODO check if there is a limit here???  step_dim = 1000/sine_freq ???
 
-    recordScan = True      # default = True --> To connect to qutag to record data
-    ping101 = True          # default = True --> marker AFTER  step, after sweep ends
-    ping102 = True          # default = True --> marker BEFORE step, before sweep starts
-    diagnostics = False    # default = False. Creates timeres file when False vs. txt file when True
+    recordScan = False      # default = True --> To connect to qutag to record data
+    pingQuTag = False        # default = True
+    diagnostics = False     # default = False. Creates timeres file when False vs. txt file when True
 
     # -----Extra params that shouldn't change but can be for debugging--------
-    pingQuTag = True        # default = True
+    ping101 = True          # default = True --> marker AFTER  step, after sweep ends
+    ping102 = True          # default = True --> marker BEFORE step, before sweep starts
     useTrigger = True       # default = True
     plotting = False        # default = False
     offline = False          # default = False.  This is so we can run the code without connection to qutag or labjack. for checking errors and values generated
@@ -67,11 +71,16 @@ class Raster:  # USER CAN CHANGE SCAN CLASS PARAMETERS BELOW!!
     currTime = time.strftime("%Hh%Mm%Ss", time.localtime())
     filename = f'{scan_name}_sineFreq({sine_freq})_numFrames({num_frames})_sineAmp({sine_voltage})_stepAmp({step_voltage})_stepDim({step_dim})_date({currDate})_time({currTime})'
 
-
 class T7:
     def __init__(self):
         self.handle = None          # Labjack device handle
         self.abort_scan = False     # Important safety bool for parameter checks
+
+        self.optolens = None        # Lens Driver: This is the initialized lens driver class object  # note: NEW
+        self.lens_port = "COM5"     # Lens Driver: which usb port it is connected to (Can be found in: Device Manager -> Ports)
+
+        self.lens_values = [10, 20, 40, 60, 80, 100, 80, 60, 40, 20] + [0, 20, 40, 60, 80, 100, 80, 60, 40, 20]   # TODO: dummy values for now       FIXME
+        self.lens_wait_value = 1   # <-- temp  for testing   # better => 0.03    # (note: settling time=25ms, reaction time=5ms) # marginal stabilization time before new frame   #  FIXME
         # --------------- HARDCODED CLASS CONSTANTS BASED ON WIRING -------------
         
         self.wait_address = "WAIT_US_BLOCKING"
@@ -92,9 +101,11 @@ class T7:
         self.x_offset = 0.59
         self.y_offset = -0.289
 
+
     # MAIN FUNCTION THAT PREPARES AND PERFORMS SCAN:
     # MULTI-DONE
     def main_galvo_scan(self):
+
         #print("\nStep 1) Defining scan parameters.") 
         self.get_scan_parameters()
 
@@ -139,7 +150,7 @@ class T7:
                 return
 
             if self.useTrigger and not self.offline:  # alternative is that we use "STREAM_ENABLE" as a sort of trigger
-                #print("Prepping stream trigger")
+                #err = ljm.eStreamStop(self.handle)   # TODO: HANDLE ERROR IF STREAM IS ALREADY ACTIVE!
                 self.configure_stream_trigger()    # NOTE ONLINE ONLY
 
             # Finish stream configs , replaces: ljm.eStreamStart(self.handle, self.b_scansPerRead,...)
@@ -155,7 +166,7 @@ class T7:
             SafetyTests().multi_check_cmd_list(self.aAddressesDown, self.aValuesDown, check_txt="Down Check")
             SafetyTests().check_voltages()  # MOST IMPORTANT SO WE DON'T DAMAGE DEVICE WITH TOO HIGH VOLTAGE
             # ----
-
+            #self.abort_scan = True  # temp  # NOTE
             #print("\nStep 8) Performing scan...")
             if not self.abort_scan:
                 self.multi_start_scan()    # NOTE ONLINE ONLY
@@ -603,11 +614,32 @@ class T7:
                 print(i, "s ...")
                 time.sleep(1)
 
+    # note: new function:
+    def config_lens_driver(self):
+         # NOTE: NEW
+
+        # TODO: --> create "lens current plan". --> (make function)
+        #    params=(nr_steps = nr_frames, min value, max value, step value?)
+         # current [mA] values for lens  FIXME. ^
+        print("Lens step values [mA]:", self.lens_values)
+
+         # Connect to lens driver on serial port. Initializing OptoLens instance
+        self.optolens = OptoLens(self.lens_port)
+
+         # Check if planned values are ok!
+        values_ok = self.optolens.check_current_values(self.lens_values, self.lens_wait_value)  # returns False if values are bad
+
+        if values_ok:
+            print("Lens values ok!")
+        else:
+            self.abort_scan = True
+
     # Step 9) Actual scan is done here
     # MULTI-NEEDS CHECKING
     def multi_start_scan(self):
         # Start configured (but trigger-set) stream --> scan several frames
         try:
+
             if self.abort_scan:  # last line of defense
                 return
 
@@ -620,8 +652,14 @@ class T7:
             print("Calling ljm.WriteNames(...)")
 
             start_time = time.time()
-            # NOTE: OLD WAY = ljm.eWriteNames(self.handle, len(self.aAddresses), self.aAddresses, self.aValues)
+
             for i in range(self.num_frames):  # scan repeats for given number of frames
+
+                if self.optolens:
+                   self.optolens.current(self.lens_values[i])    # write lens current, unit: mA  # NOTE: NEW  # TODO: test with a few values
+                   time.sleep(self.lens_wait_value)  # approx 30ms
+                   self.optolens.current()   # read current back  # TODO: REMOVE LATER
+
                 if i % 2 == 0:  # if i is even
                     rc1 = ljm.eWriteNames(self.handle, len(self.aAddressesUp), self.aAddressesUp, self.aValuesUp)  # step left to right (or bottom to top)
                 else:
@@ -634,6 +672,9 @@ class T7:
             print(f"Theoretical scan time = {self.num_frames * self.step_dim * self.step_delay} seconds")
             print(f"Actual scan time   = {round(end_time - start_time, 6)} seconds\n")
 
+            if self.optolens:
+                self.optolens.close()  # close connection with lens driver # TODO: maybe also add close() in case of error??    # NOTE: NEW
+
             # reset trigger and galvo positions to offset:
             rc = ljm.eWriteName(self.handle, self.tr_source_addr, 0)  # send 0 just in case to stop any input
             self.set_offset_pos()
@@ -642,8 +683,10 @@ class T7:
             print("Failed scan")
             #err = ljm.eStreamStop(self.handle)
             self.close_labjack_connection()
-            raise
+            if self.optolens:
+                self.optolens.close()  # close connection with lens driver   # NOTE: NEW
 
+            raise
 
     # Sets galvos to set offset positions 
     def set_offset_pos(self):
@@ -811,7 +854,15 @@ def plot_values_down():
 t7 = T7()
 # 2) Prepare and perform scan
 try:
+    # CONFIG AND CONNECT TO LENS DRIVER FOR LIQUID LENS CONTROL:  # NOTE: NEW!
+    t7.config_lens_driver()
+    #self.optolens.current(10) # write current value
+    #time.sleep(1)  # let it change before reading
+    #self.optolens.current()  # read current back
+
+    # REMAINING SCAN CODE:
     t7.main_galvo_scan()
+
 except:
     # reset if script encounters an error and exit out
     t7.close_labjack_connection()
@@ -819,3 +870,17 @@ except:
 
 # 3) Terminates labjack connection
 t7.close_labjack_connection()
+
+
+
+"""
+Write: 10 mA                --> x_i = 139.87160224013115
+Read : 9.937685546874999 mA     x_i = b'\x00\x8b' == 139
+
+Write: 20 mA                --> x_i = 279.7432044802623
+Read : 19.946865234374997 mA    x_i = b'\x01\x17' == 279
+
+Write: 40 mA                --> x_i = 559.4864089605246
+Read : 39.965224609375 mA       x_i =  b'\x02/' == 559
+"""
+
