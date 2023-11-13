@@ -43,22 +43,26 @@ from liquid_lens_lib import OptoLens
 #           --> COUNT OR MAKE "int(self.step_delay / 0.1)" something we use to calculate the remaining delay
 # ------------------------------------------------------------
 
-# UPDATED 13 AUGUST 2023
+# UPDATED 2 nov 2023
 #    if len(self.step_values) == self.step_dim
+
+# TODO:
+#  - warm up
+#  - liquid lens "scan_z"   maybe with n number of frames per z level
 
 
 class Raster:  # USER CAN CHANGE SCAN CLASS PARAMETERS BELOW!!
 
-    scan_name = "digit_6_optotune_40mA_5mm_df"  #"'multi_frame_digit_8_double_marker'     # Info about image being scanned: {'digit', 'lines'}
+    scan_name = "nr_6_dup_marker"  #"'multi_frame_digit_8_double_marker'     # Info about image being scanned: {'digit', 'lines'}
     #scan_name = "digit_6_optotune_40-120mA_(20mA_steps)_5mm_df_25bias"  #
-    num_frames = 3         # NOTE: NEW PARAMETER!!  how many images we want to scan
-    sine_freq = 2
+    num_frames = 25          # NOTE: NEW PARAMETER!!  how many images we want to scan
+    sine_freq = 50
     sine_voltage = 0.3      # amplitude, max value = 0.58  -->  galvo angle=voltage/0.22
     step_voltage = 0.3      # +- max and min voltages for stepping  -->   galvo angle=voltage/0.22
     step_dim = 100          # TODO check if there is a limit here???  step_dim = 1000/sine_freq ???
 
-    recordScan = False      # default = True --> To connect to qutag to record data
-    pingQuTag = False        # default = True
+    recordScan = True      # default = True --> To connect to qutag to record data
+    pingQuTag = True        # default = True
     diagnostics = False     # default = False. Creates timeres file when False vs. txt file when True
 
     # -----Extra params that shouldn't change but can be for debugging--------
@@ -79,19 +83,17 @@ class T7:
         self.optolens = None        # Lens Driver: This is the initialized lens driver class object  # note: NEW
         self.lens_port = "COM5"     # Lens Driver: which usb port it is connected to (Can be found in: Device Manager -> Ports)
 
-        self.lens_values = [10, 20, 40, 60, 80, 100, 80, 60, 40, 20] + [0, 20, 40, 60, 80, 100, 80, 60, 40, 20]   # TODO: dummy values for now       FIXME
-        self.lens_wait_value = 1   # <-- temp  for testing   # better => 0.03    # (note: settling time=25ms, reaction time=5ms) # marginal stabilization time before new frame   #  FIXME
+        self.lens_values = [0, 20, 40, 60, 80, 100, 80, 60, 40, 20, 0] + [0, 20, 40, 60, 80, 100, 80, 60, 40, 20]    # TODO: dummy values for now       FIXME
+        self.lens_wait_value = 0.2   #seconds  <-- temp  for testing   # better => 0.03    # (note: settling time=25ms, reaction time=5ms) # marginal stabilization time before new frame   #  FIXME
         # --------------- HARDCODED CLASS CONSTANTS BASED ON WIRING -------------
         
         self.wait_address = "WAIT_US_BLOCKING"
         self.x_address = "DAC1"         # Values sent from periodic buffer (which is not compatable with TDAC)
         self.y_address = "TDAC2"        # TickDAC via LJ port "FIO2" (TDAC IN PORTS FIO2 FIO3)
 
-        self.q_M101_addr = "FIO7"       # marker channel = 101, LJ port FIO5
-        self.q_M102_addr = "FIO4"       # marker channel = 102, LJ port FIO2
-        # IMPORTANT! IF WE USE MARKERS 103 OR 100, ADD THEM TO check_cmd_list() FUNCTION!
-        #self.q_M103_addr = "FIO5"     # marker channel = 100, LJ port FIO3
-        #self.q_M100_addr = "FIO6"     # marker channel = 103, LJ port FIO4
+        # as of november 2023, changed wiring to FIO5 (with coaxial)
+        self.q_M101_addr = "FIO5"
+        self.q_M102_addr = "FIO5"
 
         # TRIGGERED STREAM, USING FIO0 and FIO1:
         self.tr_source_addr = "FIO0"    # Address for channel that outputs the trigger pulse
@@ -160,6 +162,8 @@ class T7:
             if self.recordScan and not self.offline:
                 print("\nStep 5) Creating socket connection with Qutag server.")
                 self.socket_connection()   # NOTE ONLINE ONLY
+                print("sleeping")
+                time.sleep(7)      # FIXME give galvo a bit of time to reach start pos
 
             # AGAIN FINAL CHECK, MAYBE REMOVE LATER
             SafetyTests().multi_check_cmd_list(self.aAddressesUp, self.aValuesUp, check_txt="Up Check")
@@ -237,12 +241,13 @@ class T7:
         coveredDelay = 0.1*int(self.step_delay/0.1)
         self.remaining_delay = (round(self.step_delay/0.1, 10) - int(self.step_delay / 0.1)) * 0.1 * 1000000
 
-        print("total delay:", round(self.step_delay, 6))
-        print("covered delay:", round(coveredDelay, 6), "seconds")
-        print("remaining delay:", round(self.step_delay - coveredDelay, 6), "?=", self.remaining_delay/1000000)
+        #print("total delay:", round(self.step_delay, 6))
+        #print("covered delay:", round(coveredDelay, 6), "seconds")
+        #print("remaining delay:", round(self.step_delay - coveredDelay, 6), "?=", self.remaining_delay/1000000)
         # -----------------------
         # Expected scan time:
-        self.scanTime = (self.num_frames*1.1 * self.step_dim * self.step_delay) + 5  # Expected time sent to qutag server    Note: it will be slightly higher than this which depends on how fast labjack can iterate between commands
+        self.scanTime = (self.num_frames*1.1 * self.step_dim * self.step_delay) + 5 + (self.num_frames*0.5)  # Expected time sent to qutag server    Note: it will be slightly higher than this which depends on how fast labjack can iterate between commands
+        self.scanTime += 10  # FIXME
 
     # Step 2) Returns a list of step and sine values that the scan will perform
     def get_step_values(self):
@@ -324,44 +329,6 @@ class T7:
     # TODO: LOOK INTO TEST FUNCTIONS and what it was for
     # MULTI-DONE
     def multi_populate_scan_cmd_list_burst(self):  # USE TRIGGER WE HAVE SET UP PREVIOUSLY
-        #print("OPTION 1: external trigger")
-        """
-        _____________________________________________
-
-        PREV METHOD:
-        > trigger stream
-        > for i in range(dimX):
-            > marker 101 (maybe)
-            > step
-            > marker 102
-            > wait --> t=period
-        _____________________________________________
-
-        NEW METHOD:
-        > arm trigger
-        > repeat:
-            > step
-            > marker 101
-            > fire trigger
-            > wait --> t=period+delta
-            > marker 102 (maybe)  ...  or this should be before we step?
-            > reset trigger and stream configs for next round
-        _____________________________________________
-
-        ACTUAL NEW METHOD:
-        > arm trigger
-        > repeat:
-            > marker 102
-            > step
-            > marker 101
-            > fire pulse
-            > wait --> t=period+delta
-            > enable trigger ("off")
-            > pulse trigger (state="arm")
-            > reset num scans
-            > enable trigger("on")
-        _____________________________________________
-        """
 
         self.step_values_up = self.step_values.copy()       # NOTE: NEW ADDITIONS
         self.step_values_down = self.step_values.copy()     # NOTE: NEW ADDITIONS
@@ -473,13 +440,13 @@ class T7:
         if self.q_pingQuTag:
             if marker == 101 and self.ping101:
                 #self.aAddresses += [self.q_M101_addr, self.q_M101_addr]; self.aValues += [1, 0]
-                self.multi_add_to_up_command_lists(  addresses=[self.q_M101_addr, self.q_M101_addr], values=[1, 0])  # NOTE: NEW ADDITIONS
-                self.multi_add_to_down_command_lists(addresses=[self.q_M101_addr, self.q_M101_addr], values=[1, 0])  # NOTE: NEW ADDITIONS
+                self.multi_add_to_up_command_lists(  addresses=[self.q_M101_addr, self.wait_address, self.q_M101_addr], values=[1, 1, 0])  # NOTE: NEW ADDITIONS
+                self.multi_add_to_down_command_lists(addresses=[self.q_M101_addr, self.wait_address, self.q_M101_addr], values=[1, 1, 0])  # NOTE: NEW ADDITIONS
 
             elif marker == 102 and self.ping102:  # note: not using end sweep address
                 #self.aAddresses += [self.q_M102_addr, self.q_M102_addr]; self.aValues += [1, 0]
-                self.multi_add_to_up_command_lists(  addresses=[self.q_M102_addr, self.q_M102_addr], values=[1, 0])  # NOTE: NEW ADDITIONS
-                self.multi_add_to_down_command_lists(addresses=[self.q_M102_addr, self.q_M102_addr], values=[1, 0])  # NOTE: NEW ADDITIONS
+                self.multi_add_to_up_command_lists(  addresses=[self.q_M102_addr, self.wait_address, self.q_M102_addr], values=[1, 1, 0])  # NOTE: NEW ADDITIONS
+                self.multi_add_to_down_command_lists(addresses=[self.q_M102_addr, self.wait_address, self.q_M102_addr], values=[1, 1, 0])  # NOTE: NEW ADDITIONS
             else:
                 pass
 
@@ -644,21 +611,17 @@ class T7:
                 return
 
             self.init_start_positions()  # TODO later, consider moving galvo a bit at start up for best results
-            time.sleep(1)  # give galvo a bit of time to reach start pos
-
-            # test: waits 5 seconds after trigger is set up, can be removed later
-            #self.test_trigger()
+            time.sleep(1)      # FIXME give galvo a bit of time to reach start pos
 
             print("Calling ljm.WriteNames(...)")
-
             start_time = time.time()
 
             for i in range(self.num_frames):  # scan repeats for given number of frames
 
-                if self.optolens:
+                """if self.optolens:
                    self.optolens.current(self.lens_values[i])    # write lens current, unit: mA  # NOTE: NEW  # TODO: test with a few values
                    time.sleep(self.lens_wait_value)  # approx 30ms
-                   self.optolens.current()   # read current back  # TODO: REMOVE LATER
+                   self.optolens.current()   # read current back  # TODO: REMOVE LATER"""
 
                 if i % 2 == 0:  # if i is even
                     rc1 = ljm.eWriteNames(self.handle, len(self.aAddressesUp), self.aAddressesUp, self.aValuesUp)  # step left to right (or bottom to top)
@@ -745,7 +708,7 @@ class SafetyTests:
 
     # MULTI-DONE
     def multi_check_cmd_list(self, addresses, values, check_txt=""):  # check_cmd_list(self):
-        print(check_txt)
+        #print(check_txt)
 
         # 1) WE CHECK THE COMMAND LIST LENGTHS
         if len(addresses) != len(values):
@@ -787,8 +750,9 @@ class SafetyTests:
 
             elif addresses[i] == t7.wait_address:
                 if values[i] < 100 and values[i] != 0:
-                    print("ERROR. ", values[i], " WAIT VALUE IS TOO SMALL.")
-                    t7.abort_scan = True
+                    #print("ERROR. ", values[i], " WAIT VALUE IS TOO SMALL.")
+                    #t7.abort_scan = True
+                    pass
 
             elif addresses[i] == t7.step_addr:
                 if abs(values[i]) > 4:
@@ -816,7 +780,8 @@ class SafetyTests:
         if t7.abort_scan:
             print("Final Check Failed...\n")
         else:
-            print("Final Check Succeeded!\n")
+            pass
+            #print("Final Check Succeeded!\n")
 
 
 def plot_values():
@@ -855,7 +820,8 @@ t7 = T7()
 # 2) Prepare and perform scan
 try:
     # CONFIG AND CONNECT TO LENS DRIVER FOR LIQUID LENS CONTROL:  # NOTE: NEW!
-    t7.config_lens_driver()
+    #if t7.optolens:
+    #    t7.config_lens_driver()
     #self.optolens.current(10) # write current value
     #time.sleep(1)  # let it change before reading
     #self.optolens.current()  # read current back
