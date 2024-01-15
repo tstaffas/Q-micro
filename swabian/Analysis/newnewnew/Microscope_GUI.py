@@ -97,28 +97,29 @@ def main():
     #eta = ETA()  # note move this to be initialized when starting a new scan
 
     try:
-        gui.root.after(500, gui.scanning)  # After 1 second, call scanning
+        #gui.root.after(500, gui.scanning)  # After 1 second, call scanning
         gui.root.mainloop()
+        print("after mainloop")
 
     except KeyboardInterrupt:
-        gui.logger_box.module_logger.info("ERROR: Keyboard Interrupt")
+        print("ERROR: Keyboard Interrupt")
         raise
 
     except SystemExit:
-        gui.logger_box.module_logger.info("ERROR: System Exit")
+        print("ERROR: System Exit")
         raise
 
     except tk.EXCEPTION:
-        gui.logger_box.module_logger.info("ERROR: tkinter exception")
+        print("ERROR: tkinter exception")
         raise
 
     except serial.SerialException:
-        gui.logger_box.module_logger.info("ERROR: serial exception")
+        print("ERROR: serial exception")
         raise
 
     except:
         # reset if script encounters an error and exit out
-        gui.logger_box.module_logger.info("ERROR: (some default error)")
+        print("ERROR: (some default error)")
         raise
 
     finally:
@@ -127,6 +128,7 @@ def main():
         gui.close(printlog=False)  # Close all external connections
         t7.socket_connection(shutdown_server=True)
 
+    print("end main")
     # TODO: MOVE TO RIGHT PLACES
     #t7.reset_scan_vars()  # call before starting new scan
     #t7.main_galvo_scan()  # call to start new scan  (it will first check all value to see if they are ok)
@@ -494,14 +496,14 @@ class GUI:
             self.pb['value'] = n + 1
             self.root.update()  # testing
 
-    def scanning(self):
+    """def scanning(self):
 
         if self.running:  # if start button is active
             #self.get_counts()  # saves data to self.data. note that live graph updates every second using self.data
             #self.save_data(mode="a")
             gui.logger_box.module_logger.info(".")
             pass
-        self.root.after(500, self.scanning)  # After 1 second, call scanning
+        self.root.after(500, self.scanning)  # After 1 second, call scanning"""
 
     def save_data(self, mode):
         data_str = []
@@ -545,12 +547,12 @@ class GUI:
                 t7.main_galvo_scan()  # try to perform scan (including prepp and connections)
 
             # TODO NOTE WORKING HERE PLOTTING ANALYSIS
-            print("Scanning done. Moving on to analysis:")
+            self.logger_box.module_logger.info("Scanning done. Moving on to analysis:")
             all_figs = self.ETA_analysis()
             plt_frame, canvas = self.pack_plot(self.plotting_frame, all_figs[0])  # FIXME: or maybe after plotting histo?
             plt_frame.grid(row=1, column=1, sticky="news", padx=0, pady=0)
             self.root.update()
-            print("Done plotting")
+            self.logger_box.module_logger.info("Done plotting")
 
 
         def press_stop():
@@ -725,6 +727,8 @@ class GUI:
     # TODO:
     # - fix dimX dimY naming
     # - connect to actual data from GUI scan
+    # - maybe move microscope analysis (library) code to this file
+
     def ETA_analysis(self):
         # ------IMPORTS-----
         import Swabian_Microscope_library as Q
@@ -762,8 +766,8 @@ class GUI:
         binsize = int(round(
             period_ps / bins))  # how much time (in ps) each histogram bin is integrated over (=width of bins). Note that the current recipe returns "bins" values per period.
 
-        print(f"bins = {bins},  binsize = {binsize}")  # *{10e-12} picoseconds")
-        print(f"single frame scan time: {dimX / freq} sec,  scan frame rate: {scan_fps} fps")
+        self.logger_box.module_logger.info(f"bins = {bins},  binsize = {binsize}")  # *{10e-12} picoseconds")
+        self.logger_box.module_logger.info(f"single frame scan time: {dimX / freq} sec,  scan frame rate: {scan_fps} fps")
 
         # NOTE: Below is a dictionary with all the parameters defined above. This way we can sent a dict with full access instead of individual arguments
         const = {
@@ -795,7 +799,7 @@ class GUI:
         if timetag_file is None:
             timetag_file = Q.get_timres_name(folder, nr_frames, freq, clue=clue)
             const["timetag_file"] = timetag_file
-        print(f"Using datafile: {timetag_file}\n")
+        self.logger_box.module_logger.info(f"Using datafile: {timetag_file}\n")
 
         # --- PROVIDE WHICH MAIN FOLDER WE SAVE ANY ANALYSIS TO (ex. images, raw data files, etc.), DEPENDING ON WHICH ETA FILE
         st = timetag_file.find("date(")
@@ -1438,7 +1442,7 @@ class T7:
             for i in range(self.num_frames):  # scan repeats for given number of frames
                 #gui.pb['value'] += proc_step
                 #gui.root.update()  # testing    # TODO NOTE FIXME, CHECK IF THIS AFFECTS ANYTHING TIME-WISE!!
-                print(f"Frame", i, "done")
+                gui.logger_box.module_logger.info(f"Frame", i, "done")
 
                 if i % 2 == 0:  # if i is even
                     rc1 = ljm.eWriteNames(self.handle, len(self.aAddressesUp), self.aAddressesUp, self.aValuesUp)  # step left to right (or bottom to top)
@@ -1448,7 +1452,7 @@ class T7:
             end_time = time.time()
 
             err = ljm.eStreamStop(self.handle)
-            print("Stream closed")
+            gui.logger_box.module_logger.info("Stream closed")
             gui.logger_box.module_logger.info(f"Scan Done!"
                                               f"\n   ETA scan time = {int(self.scanTime)} seconds"
                                               f"\n   Theoretical scan time = {self.num_frames * self.step_dim * self.step_delay} seconds"
@@ -1503,7 +1507,6 @@ class T7:
 class ETA:
     def __init__(self):
         pass
-
 
 
 class SafetyTests:
@@ -1612,7 +1615,7 @@ class SafetyTests:
 
 
 main()
-
+print("donnneeee main")
 """
 Write: 10 mA                --> x_i = 139.87160224013115
 Read : 9.937685546874999 mA     x_i = b'\x00\x8b' == 139
