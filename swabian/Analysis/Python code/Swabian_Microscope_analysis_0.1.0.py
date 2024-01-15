@@ -1,34 +1,25 @@
 #------IMPORTS-----
-import Microscope_library as Q
+import Swabian_Microscope_library as Q
 
 # ------------ PARAMETERS AND CONSTANTS --------------
-eta_recipe = 'multiframe_recipe_bidirectional_segments_0.0.4.eta'        # 'microscope_bidirectional_segments_0.0.3.eta'
+eta_recipe = 'Swabian_multiframe_recipe_bidirectional_segments_0.0.4.eta'        # 'microscope_bidirectional_segments_0.0.3.eta'
+#eta_recipe = 'Swabian_multiframe_recipe_bidirectional_segments_0.0.6.eta'        # 'microscope_bidirectional_segments_0.0.3.eta'
 
 # Parameters to locate timeres files:
-folder = "Data/230927/"             # Note: this is used to find the timeres file --> WRITE in your own data folder location
-clue = "digit_6"                    # Note: this is used to help find the correct timeres file when only given frequency (ex: 'higher_power', 'digit_8', '13h44m23s')
+folder = "Data/231102/"             # Note: this is used to find the timeres file --> WRITE in your own data folder location
+clue = "nr_6"                    # Note: this is used to help find the correct timeres file when only given frequency (ex: 'higher_power', 'digit_8', '13h44m23s')
 #       ^ex. for data in "230828": {"digit_6"}
 
 timetag_file = None                 # Note: let this be None if you want to use "clue" and "folder" to automatically find your file based on frequency
-#timetag_file = folder+"test.timeres"
-#timetag_file = 'Data/230828/digit_6_sineFreq(10)_numFrames(10)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(230828)_time(10h28m37s).timeres'
-#timetag_file = 'Data/230828/digit_6_sineFreq(50)_numFrames(10)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(230828)_time(10h30m46s).timeres'
-#timetag_file = 'Data/230828/digit_6_sineFreq(100)_numFrames(10)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(230828)_time(10h31m51s).timeres'
-#timetag_file = 'Data/230828/digit_6_sineFreq(50)_numFrames(50)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(230828)_time(10h46m13s).timeres'
-
-#timetag_file = 'Data/230904/digit_6_optotune_40-120mA_(20mA_steps)_5mm_df_25bias_sineFreq(30)_numFrames(9)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(230904)_time(15h32m17s).timeres'
-#timetag_file = 'Data/230904/digit_6_optotune_40-120mA_(20mA_steps)_5mm_df_27bias_sineFreq(10)_numFrames(9)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(230904)_time(15h20m55s).timeres'
-#timetag_file = 'Data/230904/digit_6_optotune_40-120mA_(20mA_steps)_5mm_df_37bias_sineFreq(10)_numFrames(9)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(230904)_time(15h24m02s).timeres'
-
-#timetag_file = 'Data/230927/digit_6_liquid_lens_20mA_steps_5mm_df_sineFreq(10)_numFrames(10)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(230927)_time(13h15m26s).timeres'
-
-#25 bias  time(15h32m17s)
-#27 bias  time(15h20m55s)
-#37 bias  time(15h24m02s)
+#timetag_file = 'Data/231103/nr_6_dup_marker_sineFreq(1)_numFrames(2)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(231103)_time(14h48m42s).timeres'
+#timetag_file = 'Data/231103/nr_6_dup_marker_sineFreq(10)_numFrames(2)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(231103)_time(14h52m37s).timeres'
+#timetag_file = 'Data/231103/nr_6_dup_marker_sineFreq(10)_numFrames(10)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(231103)_time(15h02m31s).timeres'
+#timetag_file = 'Data/231103/nr_6_dup_marker_sineFreq(50)_numFrames(25)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(231103)_time(15h09m13s).timeres'
+#timetag_file = 'Data/231103/nr_6_dup_marker_sineFreq(50)_numFrames(50)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(231103)_time(15h06m05s).timeres'
 
 # Scan parameters:
-nr_frames = 10      # OBS: SET VALUE TO USE DATAFILE
-freq = 10           # OBS: SET VALUE TO USE DATAFILE
+nr_frames = 3        # OBS: SET VALUE TO USE DATAFILE
+freq = 1            # OBS: SET VALUE TO USE DATAFILE
 ampX = 0.3                      # --> step values between -0.3 and 0.3
 ampY = 0.3                      # --> sine values between -0.3 and 0.3
 dimX = 100                      # how many (stepwise) steps we take in scan
@@ -91,6 +82,9 @@ if __name__ == "__main__":
     #       FOR EXAMPLE: const["save_location"] = Analysis/(100Hz)_date(230717)_time(14h02m31s)
 
     # --- EXTRACT AND ANALYZE DATA ---
-    Q.eta_segmented_analysis_multiframe(const=const)   # note: all params we need are sent in with a dictionary. makes code cleaner
+    #Q.eta_segmented_analysis_multiframe(const=const)   # note: all params we need are sent in with a dictionary. makes code cleaner
+
+    # testing prev version
+    Q.bap_eta_segmented_analysis_multiframe(const=const)   # note: all params we need are sent in with a dictionary. makes code cleaner
 
 
