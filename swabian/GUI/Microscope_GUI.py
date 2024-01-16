@@ -230,7 +230,7 @@ class GUI:
 
         # LIVE SCAN TAB: (but not live yet!!!!)
         live_tab = ttk.Frame(tabControl2)
-        tk.Label(live_tab, text='Scan Settings', font=('', 15), width=34).grid(row=0, column=0, sticky="news", padx=0, pady=0)
+        tk.Label(live_tab, text='Scan Settings', font=('', 15), width=20).grid(row=0, column=0, sticky="news", padx=0, pady=0)
 
         tk.Button(live_tab, text="Disconnect", command=t7.close_labjack_connection, activeforeground='blue',
                   highlightbackground=self.button_color).grid(row=0, column=1, sticky='news', padx=0, pady=0)
@@ -545,6 +545,13 @@ class GUI:
                 t7.main_galvo_scan()  # try to perform scan (including prepp and connections)
                 self.data_file.set(filename+'.timeres')
 
+            # temp force plot for demo tuesday
+            all_figs = self.ETA_analysis()
+            plt_frame, canvas = self.pack_plot(self.plotting_frame, all_figs[0])  # FIXME: or maybe after plotting histo?
+            plt_frame.grid(row=1, column=1, sticky="news", padx=0, pady=0)
+            self.root.update()
+            self.logger_box.module_logger.info("Done plotting")
+
         def press_close_stream():
             t7.close_stream = True
 
@@ -560,9 +567,9 @@ class GUI:
         frm_send = tk.Frame(tab, relief=tk.RAISED, bd=2)
 
         tk.Label(frm_send, text=f' ').grid(row=1, column=0, sticky="ew")
-        btn_start = tk.Button(frm_send, text="Start\nScan", command=press_start, activeforeground='blue', highlightbackground=self.button_color)
+        btn_start = tk.Button(frm_send, text="Start Scan", command=press_start, activeforeground='blue', highlightbackground=self.button_color)
 
-        self.pb = ttk.Progressbar(frm_send, style='bar.Horizontal.TProgressbar', orient='horizontal', mode='determinate', length=280)  # progressbar
+        self.pb = ttk.Progressbar(frm_send, style='bar.Horizontal.TProgressbar', orient='horizontal', mode='determinate', length=100)  # progressbar
 
         btn_stop = tk.Button(frm_send, text="Analyze", command=press_analyze, activeforeground='blue', highlightbackground=self.button_color)
         btn_start.grid(row=0, column=0, sticky="nsew", padx=0, pady=1.5)
@@ -864,7 +871,7 @@ class Logger:   # example from: https://stackoverflow.com/questions/30266431/cre
         self.mybutton.grid(row=0, column=2, sticky='e')
         self.mybutton.bind("<ButtonRelease-1>", self.clear_button_callback)"""
 
-        self.mytext = tk.Text(parent, state="disabled", height=15, width=60, wrap='word', background='#eeeeee')
+        self.mytext = tk.Text(parent, state="disabled", height=15, width=40, wrap='word', background='#eeeeee')
         self.mytext.grid(row=1, column=0, columnspan=3)
 
         return self
