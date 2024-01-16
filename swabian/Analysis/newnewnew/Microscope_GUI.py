@@ -97,29 +97,28 @@ def main():
     #eta = ETA()  # note move this to be initialized when starting a new scan
 
     try:
-        #gui.root.after(500, gui.scanning)  # After 1 second, call scanning
+        gui.root.after(500, gui.scanning)  # After 1 second, call scanning
         gui.root.mainloop()
-        print("after mainloop")
 
     except KeyboardInterrupt:
-        print("ERROR: Keyboard Interrupt")
+        gui.logger_box.module_logger.info("ERROR: Keyboard Interrupt")
         raise
 
     except SystemExit:
-        print("ERROR: System Exit")
+        gui.logger_box.module_logger.info("ERROR: System Exit")
         raise
 
     except tk.EXCEPTION:
-        print("ERROR: tkinter exception")
+        gui.logger_box.module_logger.info("ERROR: tkinter exception")
         raise
 
     except serial.SerialException:
-        print("ERROR: serial exception")
+        gui.logger_box.module_logger.info("ERROR: serial exception")
         raise
 
     except:
         # reset if script encounters an error and exit out
-        print("ERROR: (some default error)")
+        gui.logger_box.module_logger.info("ERROR: (some default error)")
         raise
 
     finally:
@@ -128,7 +127,6 @@ def main():
         gui.close(printlog=False)  # Close all external connections
         t7.socket_connection(shutdown_server=True)
 
-    print("end main")
     # TODO: MOVE TO RIGHT PLACES
     #t7.reset_scan_vars()  # call before starting new scan
     #t7.main_galvo_scan()  # call to start new scan  (it will first check all value to see if they are ok)
@@ -496,14 +494,14 @@ class GUI:
             self.pb['value'] = n + 1
             self.root.update()  # testing
 
-    """def scanning(self):
+    def scanning(self):
 
         if self.running:  # if start button is active
             #self.get_counts()  # saves data to self.data. note that live graph updates every second using self.data
             #self.save_data(mode="a")
             gui.logger_box.module_logger.info(".")
             pass
-        self.root.after(500, self.scanning)  # After 1 second, call scanning"""
+        self.root.after(500, self.scanning)  # After 1 second, call scanning
 
     def save_data(self, mode):
         data_str = []
@@ -1509,6 +1507,7 @@ class ETA:
         pass
 
 
+
 class SafetyTests:
     def check_voltages(self):
         # max is 5V but this gives a bit of margin, NOTE: val = 0.22*optical angle --> val = 1V is big enough for our scope
@@ -1615,7 +1614,7 @@ class SafetyTests:
 
 
 main()
-print("donnneeee main")
+
 """
 Write: 10 mA                --> x_i = 139.87160224013115
 Read : 9.937685546874999 mA     x_i = b'\x00\x8b' == 139
