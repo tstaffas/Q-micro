@@ -100,8 +100,8 @@ class T7:
         self.tr_sink_addr = "DIO1"      # Address for channel that gets trigger pulse, and trigger stream on/off when pulse is recieved
     
         # Physical offset due to linearization of system (units: volts)
-        self.x_offset = 0.59
-        self.y_offset = -0.289
+        self.x_offset = 0.505  # 0.59
+        self.y_offset = -0.345 # -0.289
 
 
     # MAIN FUNCTION THAT PREPARES AND PERFORMS SCAN:
