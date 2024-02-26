@@ -176,7 +176,7 @@ def bap_eta_segmented_analysis_multiframe(const):
 
             print("row--", row_nr, "--")
             if row is None:
-                print(row_nr)
+                print("Row is None at:", row_nr)
                 continue
 
             countrate_matrix.append(list(row))
@@ -219,18 +219,15 @@ def bap_eta_segmented_analysis_multiframe(const):
 
     print("Complete with ETA.")
 
-    """for h in range(len(all_histo)):
+    for h in range(len(all_histo)):
         plt.figure(f"Histo for frame {h+1}")
         plt.plot(all_histo[h])
         plt.title(f"Histo for frame {h+1}")
-        #plt.ylim(0, ceiling)
 
     plt.figure(f"Histos for frame {0}")
     for h in range(len(countrate_matrix)):
-        #plt.plot(all_histo[h])
         plt.plot(countrate_matrix[h])
         plt.title(f"Histo for frame {h+1}")
-        #plt.ylim(0, ceiling)"""
 
     # step 7) create and save gifs with saved frames
     #for i in range(len(const['gif_rates'])):
@@ -238,7 +235,7 @@ def bap_eta_segmented_analysis_multiframe(const):
     #add_to_gif(location=const["save_location"], folder="/Original_Frames", const=const, gif_frame_rate=const['gif_rates'][i], note=const['gif_notes'][i], overlay=True)
     #add_to_gif(location=const["save_location"], folder="/Adjusted_Frames", const=const, gif_frame_rate=const['gif_rates'][i], note=const['gif_notes'][i], overlay=True)
 
-    #plt.show()
+    plt.show()
 
     return all_figs
 

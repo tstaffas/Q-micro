@@ -128,8 +128,8 @@ def main():
     finally:
         print('------\nFINALLY:')
         t7.close_labjack_connection(printlog=False)
+        t7.socket_connection(shutdown_server=True)  # NOTE TODO, ONLY DO THIS IF WE ARE CONNECTED
         gui.close(printlog=False)  # Close all external connections
-        #t7.socket_connection(shutdown_server=True)  # NOTE TODO, ONLY DO THIS IF WE ARE CONNECTED
 
     # TODO: MOVE TO RIGHT PLACES
     # t7.reset_scan_vars()  # call before starting new scan
@@ -868,14 +868,13 @@ class GUI:
         gif_notes = ["", "", "(live)"]  # notes for gif we want (for each playback frame rate)
 
         # ------------ MISC. RELATIONSHIPS ------------
-        dimY = int(round(dimX * (
-                    ampY / ampX)))  # How many pixels we want to use TODO: Get new data (where ampX != ampY) and test this relationship!
+        dimY = int(round(dimX * (ampY / ampX)))  # How many pixels we want to use TODO: Get new data (where ampX != ampY) and test this relationship!
         freq_ps = freq * 1e-12  # frequency scaled to unit picoseconds (ps)
         period_ps = 1 / freq_ps  # period in unit picoseconds (ps)
         binsize = int(round(period_ps / bins))  # how much time (in ps) each histogram bin is integrated over (=width of bins). Note that the current recipe returns "bins" values per period.
 
-        self.logger_box.module_logger.info(f"bins = {bins},  binsize = {binsize}")  # *{10e-12} picoseconds")
-        self.logger_box.module_logger.info(f"single frame scan time: {dimX / freq} sec,  scan frame rate: {scan_fps} fps")
+        #self.logger_box.module_logger.info(f"bins = {bins},  binsize = {binsize}")  # *{10e-12} picoseconds")
+        #self.logger_box.module_logger.info(f"single frame scan time: {dimX / freq} sec,  scan frame rate: {scan_fps} fps")
 
         # NOTE: Below is a dictionary with all the parameters defined above. This way we can sent a dict with full access instead of individual arguments
         const = {
@@ -899,7 +898,7 @@ class GUI:
             "gif_notes": gif_notes,
             "sweep_mode" : sweep_mode,
         }
-        print("Using recipe:", eta_recipe)
+        #print("Using recipe:", eta_recipe)
         # --------- GET DATA AND HISTOGRAMS------------
 
         # quick version of "ad infinitum" code where we generate one image/frame at a time from ETA
@@ -908,7 +907,7 @@ class GUI:
         if timetag_file is None:
             timetag_file = Q.get_timres_name(folder, nr_frames, freq, clue=clue)
             const["timetag_file"] = timetag_file
-        self.logger_box.module_logger.info(f"Using datafile: {timetag_file}\n")
+        #self.logger_box.module_logger.info(f"Using datafile: {timetag_file}\n")
         self.root.update()
 
         # --- PROVIDE WHICH MAIN FOLDER WE SAVE ANY ANALYSIS TO (ex. images, raw data files, etc.), DEPENDING ON WHICH ETA FILE
@@ -1038,7 +1037,7 @@ class T7:
         self.get_scan_parameters()
         self.get_step_values()
         self.get_sine_values(sweep_mode=gui.sweep_mode.get())
-        self.abort_scan = True  # TODO: REMOVE
+        #self.abort_scan = True  # TODO: REMOVE
 
         gui.logger_box.module_logger.info("Doing safety check on scan parameters.")
         SafetyTests().check_voltages()  # MOST IMPORTANT SO WE DON'T DAMAGE DEVICE WITH TOO HIGH VOLTAGE
@@ -1071,6 +1070,7 @@ class T7:
 
                 if self.close_stream:
                     err = ljm.eStreamStop(self.handle)  # TODO: HANDLE ERROR IF STREAM IS ALREADY ACTIVE!
+                    gui.logger_box.module_logger.info(f"Close stream return: {err}")
                     self.close_stream = False
 
                 self.configure_stream_trigger()  # NOTE ONLINE ONLY
@@ -1215,6 +1215,12 @@ class T7:
         #plt.plot(self.sine_times, self.sine_values)
         #plt.plot(self.sine_times, sine_values)   # note: to see this we need to run both sweep modes above and change the names to not be equal
         #plt.show()
+        """
+        for i in range(self.sine_dim):
+            t_curr = i * self.sine_delay
+            val = self.sine_amp * np.sin((2 * np.pi * self.sine_freq * t_curr) - self.sine_phase)
+            self.sine_times.append(t_curr)  # for plotting
+            self.sine_values.append(round(val + self.sine_offset, 10))  # adding offset"""
 
     # Step 4) Connect to LabJack device
     def open_labjack_connection(self):
@@ -1228,7 +1234,7 @@ class T7:
                                           f"Max bytes per MB: {info[5]} \n")
 
     # Step 5) Connect to qu_tag
-    def socket_connection(self, shutdown_server=False):
+    def socket_connection(self, shutdown_server=False, doneScan=False):
         """ Sets up a server ot communciate to the qutag computer to start a measurement
             Sends the file and scan time to the computer"""
 
@@ -1269,9 +1275,8 @@ class T7:
             if shutdown_server:
                 mode = 7  # this indicates to the ssdp side that we are done
                 self.print_log(f'Sending shutdown code!', printlog)
-            #elif self.diagnostics:
-            #    mode = 0
-            #    mode = 0
+            elif doneScan:
+                mode = 0  # this indicates that our scan is done?
             else:
                 mode = 1
 
@@ -1306,15 +1311,15 @@ class T7:
 
         self.cmd_pulse_trigger(state="arm")
         for step_idx in range(len(self.step_values)):
-            self.cmd_marker(102)  # ch2
+            self.cmd_marker(102)                # marker ch4
 
-            self.cmd_step_value(step_idx)
+            self.cmd_step_value(step_idx)       # take step
 
-            self.cmd_marker(101)  # ch2
+            self.cmd_marker(101)                # marker ch4
 
-            self.cmd_pulse_trigger(state="fire")
+            self.cmd_pulse_trigger(state="fire")  # send value 0
 
-            self.multi_add_wait_delay()  # waits a period and a delta extra
+            self.multi_add_wait_delay()  # waits a whole period and a delta extra
             # ???? do below instead of multi_add_wait_delay to see that we do need to wait a full period
             # self.aAddresses += [self.wait_address]
             # self.aValues += [self.wait_delay]
@@ -1552,7 +1557,7 @@ class T7:
         if abs(self.step_values_up[0]) < 5 and abs(self.sine_values[0]) < 5:
             ljm.eWriteNames(self.handle, 2, [self.step_addr, self.sine_addr],
                             [self.step_values_up[0], self.sine_values[0]])
-            gui.logger_box.module_logger.info("Setting start positions for Step (up) and Sine values:", self.step_values_up[0], ", ", self.sine_values[0])
+            #gui.logger_box.module_logger.info("Setting start positions for Step (up) and Sine values:", self.step_values_up[0], ", ", self.sine_values[0])
         else:
             self.abort_scan = True
 
@@ -1585,10 +1590,10 @@ class T7:
             gui.logger_box.module_logger.info("Starting Scan")
             gui.root.update()
             # -----temp----
-            print("-----")
-            for i, _ in enumerate(self.aAddressesUp):
-                print(self.aAddressesUp[i], "-->", self.aValuesUp[i])
-            print("-----")
+            #print("-----")
+            #for i, _ in enumerate(self.aAddressesUp):
+            #    print(self.aAddressesUp[i], "-->", self.aValuesUp[i])
+            #print("-----")
 
             # ----end temp----
 
@@ -1620,6 +1625,13 @@ class T7:
             # reset trigger and galvo positions to offset:
             rc = ljm.eWriteName(self.handle, self.tr_source_addr, 0)  # send 0 just in case to stop any input
             self.set_offset_pos()
+
+            # Tells server that we are done scanning
+            gui.logger_box.module_logger.info("Stopping")
+            time.sleep(1)
+            self.socket_connection(doneScan=True)
+
+
 
         except ljm.LJMError:
             gui.logger_box.module_logger.info("Failed scan")
@@ -1662,6 +1674,8 @@ class T7:
                 self.print_log("Closing successful.", printlog)
             else:
                 self.print_log(f"Problem closing T7 device. Error = {err}", printlog)
+
+        self.socket_connection(shutdown_server=True)
 
 
 class SafetyTests:
@@ -1815,4 +1829,104 @@ def plot_values_down():
     plt.ylabel("command voltage")"""
 
 
+"""
+-----
 
+FIO0 --> 1
+
+FIO5 --> 1
+WAIT_US_BLOCKING --> 1
+FIO5 --> 0
+
+TDAC2 --> -0.589
+
+FIO5 --> 1
+WAIT_US_BLOCKING --> 1
+FIO5 --> 0
+
+FIO0 --> 0
+WAIT_US_BLOCKING --> 100000.0
+WAIT_US_BLOCKING --> 100000.0
+WAIT_US_BLOCKING --> 999.9999999999787
+STREAM_ENABLE --> 0
+
+FIO0 --> 1
+STREAM_NUM_SCANS --> 256
+STREAM_ENABLE --> 1
+
+FIO5 --> 1
+WAIT_US_BLOCKING --> 1
+FIO5 --> 0
+
+TDAC2 --> -0.5829393939
+
+FIO5 --> 1
+WAIT_US_BLOCKING --> 1
+FIO5 --> 0
+
+FIO0 --> 0
+WAIT_US_BLOCKING --> 100000.0
+WAIT_US_BLOCKING --> 100000.0
+WAIT_US_BLOCKING --> 999.9999999999787
+STREAM_ENABLE --> 0
+FIO0 --> 1
+STREAM_NUM_SCANS --> 256
+STREAM_ENABLE --> 1
+FIO5 --> 1
+WAIT_US_BLOCKING --> 1
+FIO5 --> 0
+TDAC2 --> -0.5768787879
+FIO5 --> 1
+WAIT_US_BLOCKING --> 1
+FIO5 --> 0
+FIO0 --> 0
+WAIT_US_BLOCKING --> 100000.0
+WAIT_US_BLOCKING --> 100000.0
+WAIT_US_BLOCKING --> 999.9999999999787
+STREAM_ENABLE --> 0
+FIO0 --> 1
+STREAM_NUM_SCANS --> 256
+STREAM_ENABLE --> 1
+FIO5 --> 1
+WAIT_US_BLOCKING --> 1
+FIO5 --> 0
+TDAC2 --> -0.5708181818
+FIO5 --> 1
+WAIT_US_BLOCKING --> 1
+FIO5 --> 0
+FIO0 --> 0
+WAIT_US_BLOCKING --> 100000.0
+WAIT_US_BLOCKING --> 100000.0
+WAIT_US_BLOCKING --> 999.9999999999787
+STREAM_ENABLE --> 0
+FIO0 --> 1
+STREAM_NUM_SCANS --> 256
+STREAM_ENABLE --> 1
+FIO5 --> 1
+WAIT_US_BLOCKING --> 1
+FIO5 --> 0
+TDAC2 --> -0.5647575758
+FIO5 --> 1
+WAIT_US_BLOCKING --> 1
+FIO5 --> 0
+FIO0 --> 0
+WAIT_US_BLOCKING --> 100000.0
+WAIT_US_BLOCKING --> 100000.0
+WAIT_US_BLOCKING --> 999.9999999999787
+STREAM_ENABLE --> 0
+FIO0 --> 1
+STREAM_NUM_SCANS --> 256
+STREAM_ENABLE --> 1
+FIO5 --> 1
+WAIT_US_BLOCKING --> 1
+FIO5 --> 0
+TDAC2 --> -0.5586969697
+FIO5 --> 1
+WAIT_US_BLOCKING --> 1
+FIO5 --> 0
+FIO0 --> 0
+
+...
+-----
+
+"""
