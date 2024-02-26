@@ -129,7 +129,7 @@ def main():
         print('------\nFINALLY:')
         t7.close_labjack_connection(printlog=False)
         gui.close(printlog=False)  # Close all external connections
-        t7.socket_connection(shutdown_server=True)  # NOTE TODO, REMOVE AFTER DEMO
+        #t7.socket_connection(shutdown_server=True)  # NOTE TODO, ONLY DO THIS IF WE ARE CONNECTED
 
     # TODO: MOVE TO RIGHT PLACES
     # t7.reset_scan_vars()  # call before starting new scan
@@ -1051,6 +1051,7 @@ class T7:
         self.get_scan_parameters()
         self.get_step_values()
         self.get_sine_values()
+        self.abort_scan = True # TODO: REMOVE
 
         gui.logger_box.module_logger.info("Doing safety check on scan parameters.")
         SafetyTests().check_voltages()  # MOST IMPORTANT SO WE DON'T DAMAGE DEVICE WITH TOO HIGH VOLTAGE
@@ -1111,6 +1112,8 @@ class T7:
 
             if not self.abort_scan:
                 self.multi_start_scan()  # NOTE ONLINE ONLY
+        else:
+            gui.logger_box.module_logger.info("Scan aborted after safety check.")
 
     # Step 1) Sets all parameters depending on selected scan pattern and scan type
     def get_scan_parameters(self):
@@ -1160,8 +1163,7 @@ class T7:
         self.sine_freq = gui.freq.get()  # self.scanVariables.sine_freq
         self.sine_period = 1 / self.sine_freq
         self.sine_phase = np.pi / 2
-        self.sine_dim = int(
-            self.b_max_buffer_size / 2)  # sine_dim = samplesToWrite = how many values we save to buffer stream = y_steps = resolution of one period of sinewave, --> sent to TickDAC --> sent to y servo input
+        self.sine_dim = int(self.b_max_buffer_size / 2)  # sine_dim = samplesToWrite = how many values we save to buffer stream = y_steps = resolution of one period of sinewave, --> sent to TickDAC --> sent to y servo input
         self.sine_delay = self.sine_period / self.sine_dim  # time between each y value in stream buffer     #self.sine_delay = 1 / (self.sine_dim / (2 * self.step_delay))
         # Buffer stream variables:
         self.b_scanRate = int(
@@ -1204,11 +1206,33 @@ class T7:
 
     def get_sine_values(self):  # sine waveform
         # Change compared to before: now we don't ensure exactly symmetrical sine values for up/down sweeps.
-        for i in range(self.sine_dim):
-            t_curr = i * self.sine_delay
-            val = self.sine_amp * np.sin((2 * np.pi * self.sine_freq * t_curr) - self.sine_phase)
-            self.sine_times.append(t_curr)  # for plotting
-            self.sine_values.append(round(val + self.sine_offset, 10))  # adding offset
+
+        sweep_mode = 'sine'
+
+        self.sine_times = list(np.arange(start=0, stop=self.sine_dim, step=1) * self.sine_delay)
+
+
+        if sweep_mode == 'sine':
+            sine_fast = self.sine_amp * np.sin((2 * np.pi * self.sine_freq * np.array(self.sine_times)) - self.sine_phase) + self.sine_offset
+            self.sine_values = list(np.around(sine_fast, decimals=10))
+
+            print(self.sine_values)
+            #elif sweep_mode == 'linear':
+
+            # TODO: maybe best to combine the list with the reversed list?
+            lin_values = list(np.around(np.linspace(start=-self.sine_amp, stop=self.sine_amp, num=int(self.sine_dim / 2), endpoint=True) + self.sine_offset, decimals=10)) \
+                         + \
+                         list(np.around(np.linspace(start=self.sine_amp, stop=-self.sine_amp, num=int(self.sine_dim / 2), endpoint=True) + self.sine_offset, decimals=10))
+
+            print(lin_values)
+            #plt.plot(self.sine_times, lin_values)
+            #plt.plot(self.sine_times, self.sine_values)
+
+            if self.sine_dim != len(lin_values):
+                print("Error: length of sweep list must be an even amount")
+                self.abort_scan = True
+
+        #plt.show()
 
     # Step 4) Connect to LabJack device
     def open_labjack_connection(self):
