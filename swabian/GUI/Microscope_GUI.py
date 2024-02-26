@@ -3,7 +3,7 @@ from tkinter import ttk
 from tkinter.filedialog import askopenfilename, askdirectory
 import time
 import serial
-#from serial.tools import list_ports
+# from serial.tools import list_ports
 from datetime import date, datetime
 import numpy as np
 
@@ -13,13 +13,13 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 # from matplotlib import style
 # from matplotlib.backend_bases import key_press_handler
 
-import threading   #? maybe remove
+import threading  # ? maybe remove
 import webbrowser  # ??
 
 # Plotly:
-#import plotly.graph_objs as go
-#from dash import Dash, dcc, html  # , #Input, Output
-#from dash.dependencies import Output, Input
+# import plotly.graph_objs as go
+# from dash import Dash, dcc, html  # , #Input, Output
+# from dash.dependencies import Output, Input
 
 # Logger:
 import logging
@@ -28,8 +28,8 @@ import datetime
 # from WebSQControl import WebSQControl
 
 # Packages for ETA backend
-#import json
-#import etabackend.eta  # Available at: https://github.com/timetag/ETA, https://eta.readthedocs.io/en/latest/
+import json
+import etabackend.eta  # Available at: https://github.com/timetag/ETA, https://eta.readthedocs.io/en/latest/
 
 import os
 from pathlib import Path
@@ -39,6 +39,10 @@ import time
 from labjack import ljm
 import socket
 import pickle
+
+# TODO (feb 26):
+#  Add something to indicate whether we are currently connected to Labjack
+#  Add visual indication that scan is active
 
 
 # from liquid_lens_lib import OptoLens
@@ -94,7 +98,7 @@ def main():
 
     gui = GUI()
 
-    #eta = ETA()  # note move this to be initialized when starting a new scan
+    # eta = ETA()  # note move this to be initialized when starting a new scan
 
     try:
         gui.root.after(500, gui.scanning)  # After 1 second, call scanning
@@ -125,11 +129,11 @@ def main():
         print('------\nFINALLY:')
         t7.close_labjack_connection(printlog=False)
         gui.close(printlog=False)  # Close all external connections
-        #t7.socket_connection(shutdown_server=True)  # NOTE TODO, REMOVE AFTER DEMO
+        t7.socket_connection(shutdown_server=True)  # NOTE TODO, REMOVE AFTER DEMO
 
     # TODO: MOVE TO RIGHT PLACES
-    #t7.reset_scan_vars()  # call before starting new scan
-    #t7.main_galvo_scan()  # call to start new scan  (it will first check all value to see if they are ok)
+    # t7.reset_scan_vars()  # call before starting new scan
+    # t7.main_galvo_scan()  # call to start new scan  (it will first check all value to see if they are ok)
 
 
 class GUI:
@@ -152,7 +156,7 @@ class GUI:
     def init_window(self):
         self.root = tk.Tk()
         self.root.title("Quantum Microscope GUI")  # *Ghostly matters*
-        #self.root.resizable(True, True)
+        # self.root.resizable(True, True)
         # self.root.config(background='#0a50f5')   # TODO figure out why colors don't work
         self.root.geometry('1200x900')
 
@@ -185,26 +189,30 @@ class GUI:
         }
         self.ch_bias_list = []
         self.ch_trig_list = []
-        self.logger_box = None   # unsure if we should define it here at all
+        self.logger_box = None  # unsure if we should define it here at all
 
         # ANALYSIS PARAMS:
-        #self.eta_recipe = tk.StringVar(value='Swabian_multiframe_recipe_bidirectional_segments_marker4_20.eta')  # value='C:/Users/vLab/Desktop/Spectra GUI  Julia/LIDAR GUI/Recipes/3D_tof_swabian_marker_ch4.eta')
-        self.eta_recipe = tk.StringVar(value='Swabian_multiframe_recipe_bidirectional_segments_0.0.4.eta')  # value='C:/Users/vLab/Desktop/Spectra GUI  Julia/LIDAR GUI/Recipes/3D_tof_swabian_marker_ch4.eta')
-        self.data_folder = tk.StringVar(value='K:/Microscope/Data/240116/')
-        self.clue = tk.StringVar(value='digit6')
+        # self.eta_recipe = tk.StringVar(value='Swabian_multiframe_recipe_bidirectional_segments_marker4_20.eta')  # value='C:/Users/vLab/Desktop/Spectra GUI  Julia/LIDAR GUI/Recipes/3D_tof_swabian_marker_ch4.eta')
+        self.eta_recipe = tk.StringVar(
+            value='Swabian_multiframe_recipe_bidirectional_segments_marker4_21.eta')  # value='C:/Users/vLab/Desktop/Spectra GUI  Julia/LIDAR GUI/Recipes/3D_tof_swabian_marker_ch4.eta')
+        self.clue = tk.StringVar(value='fr')
         self.bins = tk.IntVar(value=20000)  # bins*binssize = 1/frep [ps]
-        self.ch_sel = tk.StringVar(value='h3')
-        self.save_folder = tk.StringVar(value='/Analysis')   # where images, gifs and analysis is saved
+        self.ch_sel = tk.StringVar(value='h2')
+        self.save_folder = tk.StringVar(value='/Analysis')  # where images, gifs and analysis is saved
 
         # SCAN PARAMS:
-        #self.dimX = tk.IntVar(value=100)
+        # self.dimX = tk.IntVar(value=100)
         self.dimY = tk.IntVar(value=100)
         self.freq = tk.DoubleVar(value=5.0)
         self.nr_frames = tk.IntVar(value=1)
         self.ampX = tk.DoubleVar(value=0.3)  # --> step values between -0.3 and 0.3
         self.ampY = tk.DoubleVar(value=0.3)  # --> sine values between -0.3 and 0.3
-        self.data_folder = tk.StringVar(value='/Users/juliawollter/Desktop/Microscope GUI/Data')
-        self.data_file = tk.StringVar(value='digit6_sineFreq(1.0)_numFrames(10)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(240114)_time(22h20m23s).timeres')
+        #self.data_folder = tk.StringVar(value='Data/240116')
+        self.data_folder = tk.StringVar(value='K:/Microscope/Data/240116')
+        # K:\Microscope\Data\240116
+        # self.data_file = tk.StringVar(value='stegh_sineFreq(5.0)_numFrames(1)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(240221)_time(11h00m07s)')
+        self.data_file = tk.StringVar(
+            value='200c_froggg_sineFreq(5.0)_numFrames(1)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(240116)_time(09h53m12s)')
 
         # -----------
 
@@ -230,7 +238,8 @@ class GUI:
 
         # LIVE SCAN TAB: (but not live yet!!!!)
         live_tab = ttk.Frame(tabControl2)
-        tk.Label(live_tab, text='Scan Settings', font=('', 15), width=20).grid(row=0, column=0, sticky="news", padx=0, pady=0)
+        tk.Label(live_tab, text='Scan Settings', font=('', 15), width=20).grid(row=0, column=0, sticky="news", padx=0,
+                                                                               pady=0)
 
         tk.Button(live_tab, text="Disconnect", command=t7.close_labjack_connection, activeforeground='blue',
                   highlightbackground=self.button_color).grid(row=0, column=1, sticky='news', padx=0, pady=0)
@@ -239,15 +248,18 @@ class GUI:
         self.choose_scan_configs_widget(live_tab).grid(row=1, column=0, columnspan=2, sticky="news", padx=2, pady=0)
 
         # Data processing (post scan)
-        self.choose_analysis_configs_widget(live_tab).grid(row=2, column=0, columnspan=2, sticky="news", padx=0, pady=0)  # in sub frame
+        self.choose_analysis_configs_widget(live_tab).grid(row=2, column=0, columnspan=2, sticky="news", padx=0,
+                                                           pady=0)  # in sub frame
 
         # Start scan button
-        self.start_scan_widget(live_tab).grid(row=3, column=0, columnspan=2, sticky="news", padx=2, pady=0)  # in sub frame
+        self.start_scan_widget(live_tab).grid(row=3, column=0, columnspan=2, sticky="news", padx=2,
+                                              pady=0)  # in sub frame
 
         # Logged information:
         self.log_scan_widget(live_tab).grid(row=4, column=0, columnspan=2, sticky="new", padx=2, pady=0)  # in sub frame
 
-        self.plot_analysis_widget(live_tab).grid(row=0, column=2, rowspan=10, sticky="new", padx=2, pady=0)  # in sub frame
+        self.plot_analysis_widget(live_tab).grid(row=0, column=2, rowspan=10, sticky="new", padx=2,
+                                                 pady=0)  # in sub frame
 
         tabControl2.add(live_tab, text='New Scan')
         # ----
@@ -269,21 +281,21 @@ class GUI:
         def suggest_name():
 
             filename = f'{variables["info"]["var"].get()}_' \
-                   f'sineFreq({variables["frequency"]["var"].get()})_' \
-                   f'numFrames({variables["nr frames"]["var"].get()})_' \
-                   f'sineAmp({variables["amp X"]["var"].get()})_' \
-                   f'stepAmp({variables["amp Y"]["var"].get()})_' \
-                   f'stepDim({variables["dim Y"]["var"].get()})_' \
-                   f'date({date.today().strftime("%y%m%d")})_' \
-                   f'time({time.strftime("%Hh%Mm%Ss", time.localtime())}).timeres'
+                       f'sineFreq({variables["frequency"]["var"].get()})_' \
+                       f'numFrames({variables["nr frames"]["var"].get()})_' \
+                       f'sineAmp({variables["amp X"]["var"].get()})_' \
+                       f'stepAmp({variables["amp Y"]["var"].get()})_' \
+                       f'stepDim({variables["dim Y"]["var"].get()})_' \
+                       f'date({date.today().strftime("%y%m%d")})_' \
+                       f'time({time.strftime("%Hh%Mm%Ss", time.localtime())}).timeres'
 
             variables['filename']['entry'].delete(0, tk.END)
             variables['filename']['entry'].insert(0, filename)
 
         def open_folder():
             file = askdirectory()
-            variables['save folder']['entry'].delete(0, tk.END)
-            variables['save folder']['entry'].insert(0, file)
+            variables['data folder']['entry'].delete(0, tk.END)
+            variables['data folder']['entry'].insert(0, file)
 
         def init_plot(show):
             ##---
@@ -305,7 +317,8 @@ class GUI:
         def plot_path():
             step_vals = []  # y-vals
 
-            step_size = (2 * variables["amp Y"]["var"].get()) / (variables["dim Y"]["var"].get() - 1)  # step size of our x values
+            step_size = (2 * variables["amp Y"]["var"].get()) / (
+                        variables["dim Y"]["var"].get() - 1)  # step size of our x values
             k = -1 * variables["amp Y"]["var"].get()
             for i in range(variables["dim Y"]["var"].get()):
                 step_vals.append(round(k + t7.y_offset, 10))
@@ -318,12 +331,12 @@ class GUI:
             y_l = []
             for j in range(0, len(step_vals), 2):
                 x_l += [x_min, x_max, x_max, x_min]
-                y_l += [step_vals[j], step_vals[j], step_vals[j+1], step_vals[j+1]]
+                y_l += [step_vals[j], step_vals[j], step_vals[j + 1], step_vals[j + 1]]
 
             ax1.clear()
             ax1.set_axis_off()
             ax1.plot(x_l, y_l, 'b-')
-            fig1.canvas.draw_idle()   # updates the canvas immediately?
+            fig1.canvas.draw_idle()  # updates the canvas immediately?
             gui.logger_box.module_logger.info("Done plotting")
 
         def select_demo():
@@ -342,13 +355,13 @@ class GUI:
 
         def select_diagnostics():
             if self.diagnostics_mode.get() is True:
-                self.record_mode.set(True)   # for diagnostics, we must be in record mode
+                self.record_mode.set(True)  # for diagnostics, we must be in record mode
             self.demo_mode.set(False)
 
         frm_misc = tk.Frame(tab, relief=tk.RAISED, bd=2)
 
         fig1, ax1 = init_plot(show=False)
-        #----
+        # ----
 
         tk.Label(frm_misc, text='Acquisition', font=('', 15)).grid(row=0, column=0, sticky="ew", padx=0, pady=0)
 
@@ -358,34 +371,44 @@ class GUI:
         variables = {
             'info': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.clue, width=30), 'var': self.clue},
             'frequency': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.freq, width=15), 'var': self.freq},
-            'nr frames': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.nr_frames, width=15), 'var': self.nr_frames},
-            #'dim X':  {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.dimX, width=15), 'var': self.dimX},
-            'dim Y':     {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.dimY, width=15), 'var': self.dimY},
+            'nr frames': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.nr_frames, width=15),
+                          'var': self.nr_frames},
+            # 'dim X':  {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.dimX, width=15), 'var': self.dimX},
+            'dim Y': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.dimY, width=15), 'var': self.dimY},
             'amp X': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.ampX, width=15), 'var': self.ampX},
             'amp Y': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.ampY, width=15), 'var': self.ampY},
-            'filename': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.data_file, width=15),  'var': self.data_file},
-            #'save folder': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.data_folder, width=15), 'var': self.data_folder},
+            'filename': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.data_file, width=15),
+                         'var': self.data_file},
+            'data folder': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.data_folder, width=15),
+                            'var': self.data_folder},
         }
 
         for i, label in enumerate(variables.keys()):
             file_lab_parts.append(tk.Label(frm_misc, text=label))
             file_entry.append(variables[label]['entry'])
             self.add_to_grid(widg=[file_lab_parts[i]], rows=[i + 1], cols=[0], sticky=["ew"])
-            self.add_to_grid(widg=[file_entry[i]], rows=[i + 1], cols=[1], sticky=["ew"])  # FIXME  # TODO: CONTINUE HERE
+            self.add_to_grid(widg=[file_entry[i]], rows=[i + 1], cols=[1],
+                             sticky=["ew"])  # FIXME  # TODO: CONTINUE HERE
 
         tk.Button(frm_misc, text="filename", command=suggest_name, activeforeground='blue',
                   highlightbackground=self.button_color).grid(row=7, column=0, sticky='ew', padx=0, pady=0)
+        tk.Button(frm_misc, text="data folder", command=open_folder, activeforeground='blue',
+                  highlightbackground=self.button_color).grid(row=8, column=0, sticky='ew', padx=0, pady=0)
 
-        #tk.Button(frm_misc, text="save to", command=open_folder, activeforeground='blue',
+        # tk.Button(frm_misc, text="save to", command=open_folder, activeforeground='blue',
         #          highlightbackground=self.button_color).grid(row=8, column=0, sticky='ew', padx=0, pady=0)
 
         self.record_mode = tk.BooleanVar(value=False)
         self.diagnostics_mode = tk.BooleanVar(value=False)
         self.demo_mode = tk.BooleanVar(value=True)
 
-        tk.Checkbutton(frm_misc, text="Record Scan ", anchor="w", command=select_record, variable=self.record_mode, onvalue=True, offvalue=False).grid(row=9, column=0, sticky="ew", padx=0, pady=0)
-        tk.Checkbutton(frm_misc, text="Diagnostics ", anchor="w", command=select_diagnostics, variable=self.diagnostics_mode, onvalue=True, offvalue=False).grid(row=9, column=1, sticky="ew", padx=0, pady=0)
-        tk.Checkbutton(frm_misc, text="Demo/Offline", anchor="w", command=select_demo, variable=self.demo_mode, onvalue=True, offvalue=False).grid(row=10, column=0, sticky="ew", padx=0, pady=0)
+        tk.Checkbutton(frm_misc, text="Record Scan ", anchor="w", command=select_record, variable=self.record_mode,
+                       onvalue=True, offvalue=False).grid(row=9, column=0, sticky="ew", padx=0, pady=0)
+        tk.Checkbutton(frm_misc, text="Diagnostics (no data file)", anchor="w", command=select_diagnostics,
+                       variable=self.diagnostics_mode, onvalue=True, offvalue=False).grid(row=9, column=1, sticky="ew",
+                                                                                          padx=0, pady=0)
+        tk.Checkbutton(frm_misc, text="Demo/Offline", anchor="w", command=select_demo, variable=self.demo_mode,
+                       onvalue=True, offvalue=False).grid(row=10, column=0, sticky="ew", padx=0, pady=0)
 
         return frm_misc
 
@@ -457,7 +480,6 @@ class GUI:
 
             # NOTE: HERE WE SHOULD START ANALYSIS?
 
-
         frm_misc = tk.Frame(tab, relief=tk.RAISED, bd=2)
         tk.Label(frm_misc, text='Analysis', font=('', 15)).grid(row=0, column=0, sticky="news", padx=0, pady=0)
 
@@ -465,7 +487,8 @@ class GUI:
         file_entry = []
 
         variables = {
-            'eta_recipe': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.eta_recipe, width=30), 'var': self.eta_recipe},
+            'eta_recipe': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.eta_recipe, width=30),
+                           'var': self.eta_recipe},
             'save_folder': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.save_folder, width=15),
                             'var': self.save_folder},
 
@@ -484,9 +507,7 @@ class GUI:
                                highlightbackground=self.button_color),
                      tk.Button(frm_misc, text="save folder", command=open_folder, activeforeground='blue',
                                highlightbackground=self.button_color)]
-        self.add_to_grid(widg=file_buts, rows=[1, 2], cols=[0,0], sticky=["ew", "ew"])
-
-
+        self.add_to_grid(widg=file_buts, rows=[1, 2], cols=[0, 0], sticky=["ew", "ew"])
 
         return frm_misc
 
@@ -498,8 +519,8 @@ class GUI:
     def scanning(self):
 
         if self.running:  # if start button is active
-            #self.get_counts()  # saves data to self.data. note that live graph updates every second using self.data
-            #self.save_data(mode="a")
+            # self.get_counts()  # saves data to self.data. note that live graph updates every second using self.data
+            # self.save_data(mode="a")
             gui.logger_box.module_logger.info(".")
             pass
         self.root.after(500, self.scanning)  # After 1 second, call scanning
@@ -531,26 +552,36 @@ class GUI:
             # NOTE: HERE WE SHOULD START ANALYSIS?
 
             filename = f'{self.clue.get()}_' \
-                   f'sineFreq({self.freq.get()})_' \
-                   f'numFrames({self.nr_frames.get()})_' \
-                   f'sineAmp({self.ampX.get()})_' \
-                   f'stepAmp({self.ampY.get()})_' \
-                   f'stepDim({self.dimY.get()})_' \
-                   f'date({date.today().strftime("%y%m%d")})_' \
-                   f'time({time.strftime("%Hh%Mm%Ss", time.localtime())})'
+                       f'sineFreq({self.freq.get()})_' \
+                       f'numFrames({self.nr_frames.get()})_' \
+                       f'sineAmp({self.ampX.get()})_' \
+                       f'stepAmp({self.ampY.get()})_' \
+                       f'stepDim({self.dimY.get()})_' \
+                       f'date({date.today().strftime("%y%m%d")})_' \
+                       f'time({time.strftime("%Hh%Mm%Ss", time.localtime())}).timeres'
             self.data_file.set(filename)
 
             if not self.demo_mode.get():
                 self.logger_box.module_logger.info(f"new file name => {filename}")
                 t7.main_galvo_scan()  # try to perform scan (including prepp and connections)
-                self.data_file.set(filename+'.timeres')
 
-            # temp force plot for demo tuesday
-            all_figs = self.ETA_analysis()
-            plt_frame, canvas = self.pack_plot(self.plotting_frame, all_figs[0])  # FIXME: or maybe after plotting histo?
-            plt_frame.grid(row=1, column=1, sticky="news", padx=0, pady=0)
+                self.data_file.set(filename)
+
+            self.logger_box.module_logger.info(f"Done with scan!")
+
+            # NOTE FIXME: MAKE SURE TO WAIT UNTIL DUMPING IS DONE BEFORE ANALYZING
+            # self.logger_box.module_logger.info(f"Auto starting analysis of data")
+            # print("Auto starting analysis of data")
+            # all_figs = self.ETA_analysis()
+            # speed adjusted plot
+            # plt_frame, canvas = self.pack_plot(self.plotting_frame, all_figs[0][1])  # FIXME: or maybe after plotting histo?
+            # plt_frame.grid(row=1, column=1, sticky="nws", padx=0, pady=0)
+            # raw plot
+            # plt_frame, canvas = self.pack_plot(self.plotting_frame, all_figs[0][0])  # FIXME: or maybe after plotting histo?
+            # plt_frame.grid(row=1, column=2, sticky="nws", padx=0, pady=0)
+            # self.logger_box.module_logger.info("Done plotting")
+
             self.root.update()
-            self.logger_box.module_logger.info("Done plotting")
 
         def press_close_stream():
             t7.close_stream = True
@@ -559,24 +590,36 @@ class GUI:
             # TODO NOTE WORKING HERE PLOTTING ANALYSIS
             self.logger_box.module_logger.info("Pressed analyze")
             all_figs = self.ETA_analysis()
-            plt_frame, canvas = self.pack_plot(self.plotting_frame, all_figs[0])  # FIXME: or maybe after plotting histo?
-            plt_frame.grid(row=1, column=1, sticky="news", padx=0, pady=0)
-            self.root.update()
+
+            # speed adjusted plot
+            plt_frame, canvas = self.pack_plot(self.plotting_frame,
+                                               all_figs[0][1])  # FIXME: or maybe after plotting histo?
+            plt_frame.grid(row=1, column=1, sticky="nw", padx=0, pady=0)
+            # raw plot
+            plt_frame, canvas = self.pack_plot(self.plotting_frame,
+                                               all_figs[0][0])  # FIXME: or maybe after plotting histo?
+            plt_frame.grid(row=2, column=1, sticky="nw", padx=0, pady=0)
+
             self.logger_box.module_logger.info("Done plotting")
+            self.root.update()
 
         frm_send = tk.Frame(tab, relief=tk.RAISED, bd=2)
 
         tk.Label(frm_send, text=f' ').grid(row=1, column=0, sticky="ew")
-        btn_start = tk.Button(frm_send, text="Start Scan", command=press_start, activeforeground='blue', highlightbackground=self.button_color)
+        btn_start = tk.Button(frm_send, text="Start Scan", command=press_start, activeforeground='blue',
+                              highlightbackground=self.button_color)
 
-        self.pb = ttk.Progressbar(frm_send, style='bar.Horizontal.TProgressbar', orient='horizontal', mode='determinate', length=100)  # progressbar
+        self.pb = ttk.Progressbar(frm_send, style='bar.Horizontal.TProgressbar', orient='horizontal',
+                                  mode='determinate', length=100)  # progressbar
 
-        btn_stop = tk.Button(frm_send, text="Analyze", command=press_analyze, activeforeground='blue', highlightbackground=self.button_color)
+        btn_stop = tk.Button(frm_send, text="Analyze", command=press_analyze, activeforeground='blue',
+                             highlightbackground=self.button_color)
         btn_start.grid(row=0, column=0, sticky="nsew", padx=0, pady=1.5)
-        #self.pb.grid(row=0, column=1, sticky="nsew")
+        # self.pb.grid(row=0, column=1, sticky="nsew")
         btn_stop.grid(row=0, column=2, sticky="nsew", padx=0, pady=1.5)
 
-        tk.Button(frm_send, text="Close stream", command=press_close_stream, activeforeground='blue', highlightbackground=self.button_color).grid(row=0, column=3, sticky="nsew", padx=0, pady=1.5)
+        tk.Button(frm_send, text="Close stream", command=press_close_stream, activeforeground='blue',
+                  highlightbackground=self.button_color).grid(row=0, column=3, sticky="nsew", padx=0, pady=1.5)
 
         return frm_send
 
@@ -585,15 +628,76 @@ class GUI:
 
         return self.plotting_frame
 
+    def counts_widget(self, tab):
+        counts_frame = ttk.Frame(tab)  # always next to tabs (accessible in all tabs)
+
+        def eta_counter_swab(recipe_file, timetag_file, **kwargs):
+            # ________ LOAD RECIPE ETA ___________
+            with open(recipe_file, 'r') as filehandle:
+                recipe_obj = json.load(filehandle)
+            eta_engine = etabackend.eta.ETA()
+            eta_engine.load_recipe(recipe_obj)
+            # Set parameters in the recipe
+            for arg in kwargs:
+                print("Setting", str(kwargs[arg]), "= ", arg)
+                eta_engine.recipe.set_parameter(arg, str(kwargs[arg]))
+
+            eta_engine.load_recipe()
+            # -------------
+            file = Path(timetag_file)
+            cutfile = eta_engine.clips(filename=file, format=1)
+            result = eta_engine.run({"timetagger1": cutfile},
+                                    group='qutag')  # Runs the time tagging analysis and generates histograms
+
+            return result
+
+        def press_count():
+
+            binsize = int(round((1 / (self.freq.get() * 1e-12)) / self.bins.get()))
+
+            folder = self.data_folder.get()
+            if len(folder) > 0:
+                if folder[-1] not in ['/', '//', '\\']:
+                    folder += '/'
+            file_path = folder + self.data_file.get()
+            if '.timeres' not in file_path:
+                file_path += '.timeres'
+
+            counts = eta_counter_swab('signal_counter.eta', file_path, binsize=binsize, bins=self.bins.get())
+
+            for sigi in signals.keys():
+                counts_labels[sigi].configure(text=f'      {counts[signals[sigi]]}')
+
+        signals = {0: 'c0', 1: 'c1', 2: 'c2', 3: 'c3', 4: 'c4',
+                   5: 'c5', 6: 'c6', 7: 'c7',  # 8: 'c8',
+                   # 100: 'c100', 101: 'c101', 102: 'c102', 103: 'c103',
+                   }
+        counts_labels = {}
+
+        tk.Label(counts_frame, text=f'Channel', width=4).grid(row=1, column=0, sticky='news')  # Channel number
+        tk.Label(counts_frame, text=f'   Counts', width=9, anchor="w").grid(row=1, column=1,
+                                                                            sticky='news')  # Channel number
+        tk.Button(counts_frame, text=f'  Signal Counter  ', command=press_count).grid(row=0, column=0, columnspan=2,
+                                                                                      sticky='news')  # Channel number
+
+        # Create empty labels (i.e. without any read counts)
+        for i, sig in enumerate(signals.keys()):
+            tk.Label(counts_frame, text=f'{sig}', width=6).grid(row=i + 2, column=0, sticky='news')  # Channel number
+            counts_labels[sig] = tk.Label(counts_frame, text='', width=12, anchor="w")  # Counts
+            counts_labels[sig].grid(row=i + 2, column=1, sticky='news')
+
+        return counts_frame
+
     def log_scan_widget(self, tab):
         frm_log = tk.Frame(tab, relief=tk.RAISED, bd=2)
 
         tk.Label(frm_log, text=f'Log', font=('', 15)).grid(row=0, column=0, sticky="w")
 
+        counts_frame = self.counts_widget(frm_log)  # always next to tabs (accessible in all tabs)
+        counts_frame.grid(row=0, column=20, rowspan=30, sticky="news", padx=0, pady=0)  # in sub frame
+
         # TODO: MAKE LOG BOX A DIFFERENT COLOR AND ADD SCROLLBAR
-
-        self.logger_box = Logger(frm_log)   # initialize log box from example. note: it grids itself in the class
-
+        self.logger_box = Logger(frm_log)  # initialize log box from example. note: it grids itself in the class
 
         return frm_log
 
@@ -601,7 +705,7 @@ class GUI:
     def pack_plot(tab, fig, toolbar=True):
 
         # creating the Tkinter canvas containing the Matplotlib figure
-        plt_frame = tk.Frame(tab, relief=tk.RAISED, bd=2)
+        plt_frame = tk.Frame(tab, relief=tk.FLAT, bd=2)
         canvas = FigureCanvasTkAgg(fig, master=plt_frame)  # self.root)
         canvas.draw()
 
@@ -624,15 +728,15 @@ class GUI:
             gui.logger_box.module_logger.info("TODO: IMPLEMENT SOMETHING WHEN CLOSING")
         else:
             print("*** TODO: IMPLEMENT SOMETHING WHEN CLOSING")
-        #self.sq.websq_disconnect()  # close SQWeb connection
+        # self.sq.websq_disconnect()  # close SQWeb connection
 
     # TODO FIXME:
     # NOTE: try to change X, Y to Sine, Step. Check if it's correct!!
-    def new_ETA_analysis(self):
+    """def new_ETA_analysis(self):
         # ------IMPORTS-----
         import Swabian_Microscope_library as Q
 
-        """# ------------ PARAMETERS AND CONSTANTS --------------
+        '''# ------------ PARAMETERS AND CONSTANTS --------------
         eta_recipe = 'multiframe_recipe_bidirectional_segments_0.0.4.eta'  # 'microscope_bidirectional_segments_0.0.3.eta'
 
         # Parameters to locate timeres files:
@@ -647,14 +751,14 @@ class GUI:
         ampY = 0.3  # --> sine values between -0.3 and 0.3
         dimX = 100  # how many (stepwise) steps we take in scan
         bins = 20000  # how many bins/containers we get back for one period   #20000 is good --> 10k per row
-        ch_sel = "h2" """
+        ch_sel = "h2" '''
 
         # ------------ PARAMETERS AND CONSTANTS --------------
         eta_recipe = 'multiframe_recipe_bidirectional_segments_0.0.4.eta'  # 'microscope_bidirectional_segments_0.0.3.eta'
 
         # Parameters to locate timeres files:
         folder = "Data/230927/"     # Note: save location for data files
-        self.clue = "digit_6"            # Note: (ex: 'higher_power', 'digit_8', 'digit6')
+        #self.clue = "digit_6"      # Note: (ex: 'higher_power', 'digit_8', 'digit6')
         timetag_file = None         # NOTE FIXME GET NAME OF CREATED FILE
 
         # Scan parameters:
@@ -726,8 +830,7 @@ class GUI:
         #       FOR EXAMPLE: const["save_location"] = Analysis/(100Hz)_date(230717)_time(14h02m31s)
 
         # --- EXTRACT AND ANALYZE DATA ---
-        Q.eta_segmented_analysis_multiframe(const=const)   # TODO FIX FOR GUI
-
+        Q.eta_segmented_analysis_multiframe(const=const)   # TODO FIX FOR GUI"""
 
     # TODO:
     # - fix dimX dimY naming
@@ -739,32 +842,36 @@ class GUI:
         import Swabian_Microscope_library as Q
 
         # ------------ PARAMETERS AND CONSTANTS --------------
-        #eta_recipe = 'Swabian_multiframe_recipe_bidirectional_segments_0.0.4.eta'  # 'microscope_bidirectional_segments_0.0.3.eta'
-        eta_recipe = gui.eta_recipe.get()  #'Swabian_multiframe_recipe_bidirectional_segments_marker4_20.eta'  # 'microscope_bidirectional_segments_0.0.3.eta'
+        # eta_recipe = 'Swabian_multiframe_recipe_bidirectional_segments_0.0.4.eta'  # 'microscope_bidirectional_segments_0.0.3.eta'
 
-        # Parameters to locate timeres files:
-        folder = "Data/"  # Note: this is used to find the timeres file --> WRITE in your own data folder location
-        clue = gui.clue.get()  # Note: this is used to help find the correct timeres file when only given frequency (ex: 'higher_power', 'digit_8', '13h44m23s')
-        #       ^ex. for data in "230828": {"digit_6"}
+        # timetag_file = 'nr_6_dup_marker_sineFreq(1)_numFrames(2)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(231103)_time(14h48m42s).timeres'  # Note: let this be None if you want to use "clue" and "folder" to automatically find your file based on frequency
+        # timetag_file = 'froggg_sineFreq(5.0)_numFrames(1)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(240116)_time(09h53m12s).timeres'  # Note: let this be None if you want to use "clue" and "folder" to automatically find your file based on frequency
+        # timetag_file = 'finalsaba.timeres'  # Note: let this be None if you want to use "clue" and "folder" to automatically find your file based on frequency
+        # timetag_file = 'sineFreq(1)_numFrames(2).timeres'  # temp for demo
+        # timetag_file = 'nr_6_dup_marker_sineFreq(10)_numFrames(2)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(231103)_time(14h52m37s).timeres'
+        # timetag_file = 'finalsaba_sineFreq(5.0)_numFrames(1).timeres'
+        # timetag_file = 'froggg_sineFreq(5.0)_numFrames(1).timeres'
+        # print("timetag file:", timetag_file)
+        folder = self.data_folder.get()
+        if len(folder) > 0:
+            if folder[-1] not in ['/', '//', '\\']:
+                folder += '/'
+        timetag_file = folder + self.data_file.get()
+        if '.timeres' not in timetag_file:
+            timetag_file += '.timeres'
 
-        #timetag_file = 'nr_6_dup_marker_sineFreq(1)_numFrames(2)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(231103)_time(14h48m42s).timeres'  # Note: let this be None if you want to use "clue" and "folder" to automatically find your file based on frequency
-        #timetag_file = 'froggg_sineFreq(5.0)_numFrames(1)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(240116)_time(09h53m12s).timeres'  # Note: let this be None if you want to use "clue" and "folder" to automatically find your file based on frequency
-        #timetag_file = 'finalsaba.timeres'  # Note: let this be None if you want to use "clue" and "folder" to automatically find your file based on frequency
-        #timetag_file = gui.data_file.get()
-        timetag_file = 'sineFreq(1)_numFrames(2).timeres'  # temp for demo
-        timetag_file = 'nr_6_dup_marker_sineFreq(10)_numFrames(2)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(231103)_time(14h52m37s).timeres'
-        #timetag_file = 'finalsaba_sineFreq(5.0)_numFrames(1).timeres'
-        #timetag_file = 'froggg_sineFreq(5.0)_numFrames(1).timeres'
-        #print("timetag file:", timetag_file)
+        eta_recipe = self.eta_recipe.get()  # 'Swabian_multiframe_recipe_bidirectional_segments_marker4_20.eta'  # 'microscope_bidirectional_segments_0.0.3.eta'
+        clue = self.clue.get()  # Note: this is used to help find the correct timeres file when only given frequency (ex: 'higher_power', 'digit_8', '13h44m23s')
 
         # Scan parameters:
-        nr_frames = 2  # self.nr_frames.get()
-        freq = 10  # self.freq.get()
+        nr_frames = self.nr_frames.get()  # 2
+        freq = self.freq.get()  # 10
         ampX = self.ampX.get()  # --> step values between -0.3 and 0.3
         ampY = self.ampY.get()  # --> sine values between -0.3 and 0.3
         dimX = self.dimY.get()  # how many (stepwise) steps we take in scan
         bins = self.bins.get()  # how many bins/containers we get back for one period   #20000 is good --> 10k per row
-        ch_sel = 'h2'  # self.ch_sel.get()
+        ch_sel = self.ch_sel.get()
+        print("using channel", ch_sel)
 
         # Playback Frame Rates for GIFs:
         # (time for one frame) = (number of steps)*(period) = (dimX)/(frequency)
@@ -773,14 +880,16 @@ class GUI:
         gif_notes = ["", "", "(live)"]  # notes for gif we want (for each playback frame rate)
 
         # ------------ MISC. RELATIONSHIPS ------------
-        dimY = int(round(dimX * (ampY / ampX)))  # How many pixels we want to use TODO: Get new data (where ampX != ampY) and test this relationship!
+        dimY = int(round(dimX * (
+                    ampY / ampX)))  # How many pixels we want to use TODO: Get new data (where ampX != ampY) and test this relationship!
         freq_ps = freq * 1e-12  # frequency scaled to unit picoseconds (ps)
         period_ps = 1 / freq_ps  # period in unit picoseconds (ps)
         binsize = int(round(
             period_ps / bins))  # how much time (in ps) each histogram bin is integrated over (=width of bins). Note that the current recipe returns "bins" values per period.
 
         self.logger_box.module_logger.info(f"bins = {bins},  binsize = {binsize}")  # *{10e-12} picoseconds")
-        self.logger_box.module_logger.info(f"single frame scan time: {dimX / freq} sec,  scan frame rate: {scan_fps} fps")
+        self.logger_box.module_logger.info(
+            f"single frame scan time: {dimX / freq} sec,  scan frame rate: {scan_fps} fps")
 
         # NOTE: Below is a dictionary with all the parameters defined above. This way we can sent a dict with full access instead of individual arguments
         const = {
@@ -803,7 +912,7 @@ class GUI:
             "gif_rates": gif_rates,
             "gif_notes": gif_notes,
         }
-
+        print("Using recipe:", eta_recipe)
         # --------- GET DATA AND HISTOGRAMS------------
 
         # quick version of "ad infinitum" code where we generate one image/frame at a time from ETA
@@ -812,24 +921,27 @@ class GUI:
         if timetag_file is None:
             timetag_file = Q.get_timres_name(folder, nr_frames, freq, clue=clue)
             const["timetag_file"] = timetag_file
-        #self.logger_box.module_logger.info(f"Using datafile: {timetag_file}\n")
+        self.logger_box.module_logger.info(f"Using datafile: {timetag_file}\n")
+        self.root.update()
 
         # --- PROVIDE WHICH MAIN FOLDER WE SAVE ANY ANALYSIS TO (ex. images, raw data files, etc.), DEPENDING ON WHICH ETA FILE
         st = timetag_file.find("date(")
         fin = timetag_file.find(".timeres")
-        const["save_location"] = f"Analysis/({str(freq)}Hz)_{timetag_file[st:fin]}"  # This is the folder name for the folder where data, images, and anything else saved from analysis will be saved
+        const[
+            "save_location"] = f"Analysis/({str(freq)}Hz)_{timetag_file[st:fin]}"  # This is the folder name for the folder where data, images, and anything else saved from analysis will be saved
         #       FOR EXAMPLE: const["save_location"] = Analysis/(100Hz)_date(230717)_time(14h02m31s)
 
         # --- EXTRACT AND ANALYZE DATA ---
-        # Q.eta_segmented_analysis_multiframe(const=const)   # note: all params we need are sent in with a dictionary. makes code cleaner
+        # all_figs1 = Q.eta_segmented_analysis_multiframe(const=const)   # note: all params we need are sent in with a dictionary. makes code cleaner
 
         # testing prev version
-        all_figs = Q.bap_eta_segmented_analysis_multiframe(const=const)  # note: all params we need are sent in with a dictionary. makes code cleaner
+        all_figs2 = Q.bap_eta_segmented_analysis_multiframe(
+            const=const)  # note: all params we need are sent in with a dictionary. makes code cleaner
 
-        return all_figs
+        return all_figs2
 
 
-class Logger:   # example from: https://stackoverflow.com/questions/30266431/create-a-log-box-with-tkinter-text-widget
+class Logger:  # example from: https://stackoverflow.com/questions/30266431/create-a-log-box-with-tkinter-text-widget
 
     # this item "module_logger" is visible only in this module,
     # (but you can create references to the same logger object from other modules
@@ -839,7 +951,6 @@ class Logger:   # example from: https://stackoverflow.com/questions/30266431/cre
     # recommended per https://docs.python.org/2/library/logging.html
 
     def __init__(self, tk_window):
-
         self.module_logger = logging.getLogger(__name__)
 
         # create Tk object instance
@@ -855,13 +966,13 @@ class Logger:   # example from: https://stackoverflow.com/questions/30266431/cre
         self.module_logger.setLevel(logging.INFO)
 
         # NOTE THIS IS HOW YOU LOG INTO THE BOX:
-        #self.module_logger.info("...some log text...")
+        # self.module_logger.info("...some log text...")
 
     def simpleapp_tk(self, parent):
-        #tk.Tk.__init__(self, parent)
+        # tk.Tk.__init__(self, parent)
         self.parent = parent
 
-        #self.grid()
+        # self.grid()
 
         self.mybutton = tk.Button(parent, text="Test")
         self.mybutton.grid(row=0, column=1, sticky='e')
@@ -893,6 +1004,8 @@ class Logger:   # example from: https://stackoverflow.com/questions/30266431/cre
             self.flush()
             self.textctrl.config(state="disabled")
             self.textctrl.see("end")
+
+
 # TODO: ^ add clear button for logger
 
 
@@ -904,21 +1017,33 @@ class T7:
         self.close_stream = False
         # --------------- HARDCODED CLASS CONSTANTS BASED ON WIRING -------------
 
+        """                                                   trigger  marker        wait          marker   y-addr   marker      wait           marker  trigger
+                                                             stream on                                                                                stream off
+        [                'FIO0',                                      'FIO5', 'WAIT_US_BLOCKING', 'FIO5', 'TDAC2', 
+                                                                      'FIO5', 'WAIT_US_BLOCKING', 'FIO5', 'FIO0', 
+                                                                      'WAIT_US_BLOCKING', 'WAIT_US_BLOCKING', 'WAIT_US_BLOCKING', 
+
+        'STREAM_ENABLE', 'FIO0', 'STREAM_NUM_SCANS', 'STREAM_ENABLE', 'FIO5', 'WAIT_US_BLOCKING', 'FIO5', 'TDAC2', 'FIO5', 'WAIT_US_BLOCKING', 'FIO5', 'FIO0', 'WAIT_US_BLOCKING', 'WAIT_US_BLOCKING', 'WAIT_US_BLOCKING', 
+        'STREAM_ENABLE', 'FIO0', 'STREAM_NUM_SCANS', 'STREAM_ENABLE', 'FIO5', 'WAIT_US_BLOCKING', 'FIO5', 'TDAC2', 'FIO5', 'WAIT_US_BLOCKING', 'FIO5', 'FIO0', 'WAIT_US_BLOCKING', 'WAIT_US_BLOCKING', 'WAIT_US_BLOCKING', 
+        'STREAM_ENABLE', 'FIO0', 'STREAM_NUM_SCANS', 'STREAM_ENABLE', 'FIO5', 'WAIT_US_BLOCKING', 'FIO5', 'TDAC2', 'FIO5', 'WAIT_US_BLOCKING', 'FIO5', 'FIO0', 'WAIT_US_BLOCKING', 'WAIT_US_BLOCKING', 'WAIT_US_BLOCKING', 
+        ...
+        """
+
         self.wait_address = "WAIT_US_BLOCKING"
         self.x_address = "DAC1"  # Values sent from periodic buffer (which is not compatable with TDAC)
         self.y_address = "TDAC2"  # TickDAC via LJ port "FIO2" (TDAC IN PORTS FIO2 FIO3)
 
         # as of november 2023, changed wiring to FIO5 (with coaxial)
-        self.q_M101_addr = "FIO5"
-        self.q_M102_addr = "FIO5"
+        self.q_M101_addr = "FIO5"  # ch2?
+        self.q_M102_addr = "FIO5"  # ch2?
 
         # TRIGGERED STREAM, USING FIO0 and FIO1:
         self.tr_source_addr = "FIO0"  # Address for channel that outputs the trigger pulse
         self.tr_sink_addr = "DIO1"  # Address for channel that gets trigger pulse, and trigger stream on/off when pulse is recieved
 
         # Physical offset due to linearization of system (units: volts)
-        self.x_offset = 0.505   # 0.59
-        self.y_offset = -0.345  # -0.289
+        self.x_offset = 0.59
+        self.y_offset = -0.289
 
     # MAIN FUNCTION THAT PREPARES AND PERFORMS SCAN:
     def main_galvo_scan(self):
@@ -935,6 +1060,7 @@ class T7:
             gui.logger_box.module_logger.info("Opening labjack connection")
             if not self.offline:
                 self.open_labjack_connection()  # NOTE ONLINE ONLY
+
                 # err = ljm.eStreamStop(t7.handle)   #
 
             gui.logger_box.module_logger.info("Populating command list")
@@ -958,7 +1084,7 @@ class T7:
             if self.useTrigger and not self.offline:  # alternative is that we use "STREAM_ENABLE" as a sort of trigger
 
                 if self.close_stream:
-                    err = ljm.eStreamStop(self.handle)   # TODO: HANDLE ERROR IF STREAM IS ALREADY ACTIVE!
+                    err = ljm.eStreamStop(self.handle)  # TODO: HANDLE ERROR IF STREAM IS ALREADY ACTIVE!
                     self.close_stream = False
 
                 self.configure_stream_trigger()  # NOTE ONLINE ONLY
@@ -970,16 +1096,19 @@ class T7:
 
             gui.logger_box.module_logger.info("Creating socket connection with Qutag server.")
             if self.recordScan and not self.offline:
-                #self.socket_connection()  # NOTE, TEMP FOR DEMO PURPOSES
+                self.socket_connection()  # NOTE, TEMP FOR DEMO PURPOSES
                 time.sleep(2)
 
             # AGAIN FINAL CHECK, MAYBE REMOVE LATER
             gui.logger_box.module_logger.info("Final safety check on values and addresses")
+            gui.root.update()
+
             SafetyTests().multi_check_cmd_list(self.aAddressesUp, self.aValuesUp, check_txt="Up Check")
             SafetyTests().multi_check_cmd_list(self.aAddressesDown, self.aValuesDown, check_txt="Down Check")
             SafetyTests().check_voltages()  # MOST IMPORTANT SO WE DON'T DAMAGE DEVICE WITH TOO HIGH VOLTAGE
             # ----
             # self.abort_scan = True  # temp  # NOTE
+
             if not self.abort_scan:
                 self.multi_start_scan()  # NOTE ONLINE ONLY
 
@@ -991,21 +1120,21 @@ class T7:
         self.step_addr = self.y_address
         self.step_offset = self.y_offset
         # --------------- Chosen scan parameters ----------------------------------------
-        self.filename = gui.data_file.get()         #self.scanVariables.filename
-        self.num_frames = gui.nr_frames.get()   # self.scanVariables.num_frames  # NOTE: NEW PARAM # how many frames/images we want to scan
-        self.step_amp = gui.ampY.get()   # self.scanVariables.step_voltage  # voltage = angle*0.22
-        self.step_dim = gui.dimY.get()   # self.scanVariables.step_dim
+        self.filename = gui.data_file.get()  # self.scanVariables.filename
+        self.num_frames = gui.nr_frames.get()  # self.scanVariables.num_frames  # NOTE: NEW PARAM # how many frames/images we want to scan
+        self.step_amp = gui.ampY.get()  # self.scanVariables.step_voltage  # voltage = angle*0.22
+        self.step_dim = gui.dimY.get()  # self.scanVariables.step_dim
 
-        self.recordScan = gui.record_mode.get()          # self.scanVariables.recordScan
+        self.recordScan = gui.record_mode.get()  # self.scanVariables.recordScan
         self.diagnostics = gui.diagnostics_mode.get()  # self.scanVariables.diagnostics
-        self.offline = gui.demo_mode.get()             # self.scanVariables.offline
+        self.offline = gui.demo_mode.get()  # self.scanVariables.offline
 
         self.q_pingQuTag = True  # self.scanVariables.pingQuTag   # default = True
         self.useTrigger = True  # self.scanVariables.useTrigger  # default = True
         self.ping101 = True  # self.scanVariables.ping101  # marker before step  # default = True --> marker AFTER  step, after sweep ends
         self.ping102 = True  # self.scanVariables.ping102  # marker after step   # default = True --> marker BEFORE step, before sweep starts
 
-        #self.data_folder =... '/Users/juliawollter/Desktop/Microscope GUI/Data')  # TODO FIXME: unused gui parameter (for now)
+        # self.data_folder =... '/Users/juliawollter/Desktop/Microscope GUI/Data')  # TODO FIXME: unused gui parameter (for now)
 
         # -------
 
@@ -1027,8 +1156,8 @@ class T7:
         # --------------- SINE ------------------------------
         self.b_max_buffer_size = 512  # Buffer stream size for y waveform values. --> Becomes resolution of sinewave period waveform == y_steps . i think it is max 512 samples (16-bit samples)?
         # Sine waveform:
-        self.sine_amp = gui.ampX.get()      # self.scanVariables.sine_voltage
-        self.sine_freq = gui.freq.get()    # self.scanVariables.sine_freq
+        self.sine_amp = gui.ampX.get()  # self.scanVariables.sine_voltage
+        self.sine_freq = gui.freq.get()  # self.scanVariables.sine_freq
         self.sine_period = 1 / self.sine_freq
         self.sine_phase = np.pi / 2
         self.sine_dim = int(
@@ -1097,8 +1226,13 @@ class T7:
         """ Sets up a server ot communciate to the qutag computer to start a measurement
             Sends the file and scan time to the computer"""
 
+        if self.diagnostics:
+            print("Selected diagnostic mode, skipping connection to SSPD computer")
+            return
+
         if gui.demo_mode.get():
-            return   # in demo we don't want to create a server
+            print("DEMO MODE, DID NOT SOCKET CONNECT")
+            return  # in demo we don't want to create a server
 
         if shutdown_server:
             printlog = False  # will not log it but print instead
@@ -1110,7 +1244,7 @@ class T7:
         # host = socket.gethostname()
         host = '130.237.35.177'  # IP address of this computer
         s.bind((host, 55555))
-        s.listen(10)   # listen for 10 seconds???
+        s.listen(10)  # listen for 10 seconds???
 
         self.print_log(f'Setting up the server at: {host}', printlog)
         run_flag = True
@@ -1127,10 +1261,11 @@ class T7:
             # Sends the relevant information
             # Mode is the qutag mode to produce a txt(0) or timeres file (1)
             if shutdown_server:
-                mode = 7    # this indicates to the ssdp side that we are done
+                mode = 7  # this indicates to the ssdp side that we are done
                 self.print_log(f'Sending shutdown code!', printlog)
-            elif self.diagnostics:
-                mode = 0
+            #elif self.diagnostics:
+            #    mode = 0
+            #    mode = 0
             else:
                 mode = 1
 
@@ -1165,11 +1300,11 @@ class T7:
 
         self.cmd_pulse_trigger(state="arm")
         for step_idx in range(len(self.step_values)):
-            self.cmd_marker(102)
+            self.cmd_marker(102)  # ch2
 
             self.cmd_step_value(step_idx)
 
-            self.cmd_marker(101)
+            self.cmd_marker(101)  # ch2
 
             self.cmd_pulse_trigger(state="fire")
 
@@ -1422,7 +1557,8 @@ class T7:
             gui.logger_box.module_logger.info("")
             gui.logger_box.module_logger.info("-------")
             gui.logger_box.module_logger.info(f"Stream activated, but waiting. ")
-            gui.logger_box.module_logger.info(f"You can trigger stream now via a falling edge on {self.tr_source_addr}.\n")
+            gui.logger_box.module_logger.info(
+                f"You can trigger stream now via a falling edge on {self.tr_source_addr}.\n")
             gui.logger_box.module_logger.info("Sleeping 3 seconds to test trigger:")
             for i in range(1, 3):
                 gui.logger_box.module_logger.info(i, "s ...")
@@ -1443,28 +1579,32 @@ class T7:
             time.sleep(4)  # FIXME give galvo a bit of time to reach start pos
 
             gui.logger_box.module_logger.info("Starting Scan")
+            gui.root.update()
 
             start_time = time.time()
 
             for i in range(self.num_frames):  # scan repeats for given number of frames
-                #gui.pb['value'] += proc_step
-                #gui.root.update()  # testing    # TODO NOTE FIXME, CHECK IF THIS AFFECTS ANYTHING TIME-WISE!!
-                #gui.logger_box.module_logger.info(f"Frame", i, "done")
+                # gui.pb['value'] += proc_step
+                # gui.root.update()  # testing    # TODO NOTE FIXME, CHECK IF THIS AFFECTS ANYTHING TIME-WISE!!
+                # gui.logger_box.module_logger.info(f"Frame", i, "done")
 
                 if i % 2 == 0:  # if i is even
-                    rc1 = ljm.eWriteNames(self.handle, len(self.aAddressesUp), self.aAddressesUp, self.aValuesUp)  # step left to right (or bottom to top)
+                    rc1 = ljm.eWriteNames(self.handle, len(self.aAddressesUp), self.aAddressesUp,
+                                          self.aValuesUp)  # step left to right (or bottom to top)
                 else:
-                    rc2 = ljm.eWriteNames(self.handle, len(self.aAddressesDown), self.aAddressesDown, self.aValuesDown)  # step right to left (or top to bottom)
+                    rc2 = ljm.eWriteNames(self.handle, len(self.aAddressesDown), self.aAddressesDown,
+                                          self.aValuesDown)  # step right to left (or top to bottom)
 
             end_time = time.time()
 
             err = ljm.eStreamStop(self.handle)
-            time.sleep(1)
             gui.logger_box.module_logger.info("Stream closed")
             gui.logger_box.module_logger.info(f"Scan Done!"
                                               f"\n   ETA scan time = {int(self.scanTime)} seconds"
                                               f"\n   Theoretical scan time = {self.num_frames * self.step_dim * self.step_delay} seconds"
                                               f"\n   Actual scan time   = {round(end_time - start_time, 6)} seconds\n")
+            gui.root.update()
+            time.sleep(1)
 
             # reset trigger and galvo positions to offset:
             rc = ljm.eWriteName(self.handle, self.tr_source_addr, 0)  # send 0 just in case to stop any input
@@ -1564,10 +1704,12 @@ class SafetyTests:
             gui.logger_box.module_logger.info("ERROR. NOT ENOUGH STEP VALUES.", len(t7.step_values), "!=", t7.step_dim)
             t7.abort_scan = True
         if len(t7.step_values_up) != t7.step_dim:
-            gui.logger_box.module_logger.info("ERROR. NOT ENOUGH STEP VALUES UP. ", len(t7.step_values_up), "!=", t7.step_dim)
+            gui.logger_box.module_logger.info("ERROR. NOT ENOUGH STEP VALUES UP. ", len(t7.step_values_up), "!=",
+                                              t7.step_dim)
             t7.abort_scan = True
         if len(t7.step_values_down) != t7.step_dim:
-            gui.logger_box.module_logger.info("ERROR. NOT ENOUGH STEP VALUES DOWN.", len(t7.step_values_down), "!=", t7.step_dim)
+            gui.logger_box.module_logger.info("ERROR. NOT ENOUGH STEP VALUES DOWN.", len(t7.step_values_down), "!=",
+                                              t7.step_dim)
             t7.abort_scan = True
 
         # 3) WE CHECK THE ADDRESSES IN

@@ -39,6 +39,8 @@ axis=1 --> flips around y axis (left-right)
 def get_timres_name(folder, num, freq, clue):
     """ searches for timeres filename (that fits params) in a folder and returns the name """
     for filename in os.listdir(folder):  # checks all files in given directory (where data should be)
+        print(filename)
+        print(str(num), str(freq), clue)
         if clue in filename:
             # NOTE: "clue" helps us differentiate between two with the same frequency (e.g. clue="figure_8")
             if f"numFrames({num})" in filename:
@@ -47,7 +49,7 @@ def get_timres_name(folder, num, freq, clue):
                         #print("Using datafile:", filename)
                         return folder + filename    # this is our found timetag_file!
     print("No matching timeres file found! :(")
-    exit()
+    return 'none'  # TODO FIXME
 
 def get_image_path(folder_name):
     # Checks if image folders exists in a directory, otherwise it creates it
@@ -72,7 +74,7 @@ def eta_segmented_analysis_multiframe(const):
     context = None    # tracks info about ETA logic, so we can extract and process data with breaks (i.e. in parts)
     image_nr = 0      # tracks which frame is being processed
     all_matrix = []   # for 3D animation
-
+    all_figs = []
     # step 1) repeat extraction and creations of frames while there are more frames to be created
     while image_nr < const["nr_frames"]:
         countrate_list = []
@@ -117,8 +119,9 @@ def eta_segmented_analysis_multiframe(const):
         # step 6) create and save images of current frame:   # note: below two functions are needed to save figs and create gifs
 
         #   -- Draw current frame - 2D frame
-        draw_image_heatmap(matrix=np.array(non_speed_matrix), title=f"{image_nr}_Original image - {image_nr}/{const['nr_frames']}\nScan frame rate: {const['scan_fps']} fps", fig_title=f"{image_nr}_Non-speed adjusted - sine freq: {const['freq']} Hz", save_fig=True, save_loc=const["save_location"]+"/Original_Frames", save_name=f"frame {image_nr}")
-        draw_image_heatmap(matrix=np.array(adjusted_matrix),  title=f"{image_nr}_Speed adjusted - {image_nr}/{const['nr_frames']}\nScan frame rate: {const['scan_fps']} fps", fig_title=f"{image_nr}_Speed adjusted - sine freq: {const['freq']} Hz",     save_fig=True, save_loc=const["save_location"]+"/Adjusted_Frames",    save_name=f"frame {image_nr}")
+        _ = draw_image_heatmap(matrix=np.array(non_speed_matrix), title=f"{image_nr}_Original image - {image_nr}/{const['nr_frames']}\nScan frame rate: {const['scan_fps']} fps", fig_title=f"{image_nr}_Non-speed adjusted - sine freq: {const['freq']} Hz", save_fig=True, save_loc=const["save_location"]+"/Original_Frames", save_name=f"frame {image_nr}")
+        fig = draw_image_heatmap(matrix=np.array(adjusted_matrix),  title=f"{image_nr}_Speed adjusted - {image_nr}/{const['nr_frames']}\nScan frame rate: {const['scan_fps']} fps", fig_title=f"{image_nr}_Speed adjusted - sine freq: {const['freq']} Hz",     save_fig=True, save_loc=const["save_location"]+"/Adjusted_Frames",    save_name=f"frame {image_nr}")
+        all_figs.append(fig)  # for GUI
         #   -- Draw current frame - 3D plot:
         #draw_image_heatmap_3D(matrix=np.array(adjusted_matrix),  title=f"Speed adjusted - {image_nr}/{const['nr_frames']}\nScan frame rate: {const['scan_fps']} fps", fig_title=f"Speed adjusted - sine freq: {const['freq']} Hz",     save_fig=True, save_loc=const["save_location"]+"/Adjusted_Frames",    save_name=f"frame {image_nr}")
         #plt.show()
@@ -130,13 +133,14 @@ def eta_segmented_analysis_multiframe(const):
         add_to_gif(location=const["save_location"], folder="/Adjusted_Frames", const=const, gif_frame_rate=const['gif_rates'][i], note=const['gif_notes'][i], overlay=True)
     """
     # only doing gif for fastest fps
-    i = 1
-    add_to_gif(location=const["save_location"], folder="/Original_Frames", const=const, gif_frame_rate=const['gif_rates'][i], note=const['gif_notes'][i], overlay=True)
-    add_to_gif(location=const["save_location"], folder="/Adjusted_Frames", const=const, gif_frame_rate=const['gif_rates'][i], note=const['gif_notes'][i], overlay=True)
+    #i = 1
+    #add_to_gif(location=const["save_location"], folder="/Original_Frames", const=const, gif_frame_rate=const['gif_rates'][i], note=const['gif_notes'][i], overlay=True)
+    #add_to_gif(location=const["save_location"], folder="/Adjusted_Frames", const=const, gif_frame_rate=const['gif_rates'][i], note=const['gif_notes'][i], overlay=True)
 
     # 3D animation
     #animate_image_heatmap_3D(all_matrix, title="3D animation", fig_title="3D animation", cmap='hot')
     #plt.show()
+    return all_figs
 
 #BAP
 def bap_eta_segmented_analysis_multiframe(const):
@@ -153,7 +157,7 @@ def bap_eta_segmented_analysis_multiframe(const):
     context = None    # tracks info about ETA logic, so we can extract and process data with breaks (i.e. in parts)
     image_nr = 0      # tracks which frame is being processed
     all_matrix = []   # for 3D animation
-    #all_histo = []
+    all_histo = []
     # step 1) repeat extraction and creations of frames while there are more frames to be created
     all_figs = []
 
@@ -164,18 +168,19 @@ def bap_eta_segmented_analysis_multiframe(const):
         row_nr = 0
         image_nr += 1           # note: image number starts at 1 and not 0 (i.e. not regular indexing)
 
+        print("-- image nr --", image_nr, "--")
         # step 2) Extracting rows until image is filled
         while run_flag:
             row_nr += 1
             row, pos, context, run_flag = bap_get_row_from_eta(eta_engine=eta_engine, pos=pos, context=context, ch_sel=const["ch_sel"], timetag_file=const["timetag_file"], run_flag=run_flag)
 
-            #print("--", row, "--")
+            print("row--", row_nr, "--")
             if row is None:
                 print(row_nr)
                 continue
 
             countrate_matrix.append(list(row))
-            #histo_frame += list(row)
+            histo_frame += list(row)
             if row_nr == const["dimX"]:
                 # At this point we have filled one full image and want to move onto the next image
                 print(f"Frame {image_nr}/{const['nr_frames']} complete!")
@@ -189,20 +194,21 @@ def bap_eta_segmented_analysis_multiframe(const):
         #    histo_frame.reverse()
         #    print("reversing frame", image_nr)
 
-        #all_histo.append(histo_frame)
+        all_histo.append(histo_frame)
 
         #  -------  PROCESS DATA INTO IMAGE: --------
         # step 4) create non-speed-adjusted image, compressing bins if needed
-        #non_speed_matrix = build_image_matrix(countrate_matrix, const["bins"], const["dimY"])  # raw images, flipping comparison
+        non_speed_matrix = build_image_matrix(countrate_matrix, const["bins"], const["dimY"])  # raw images, flipping comparison
 
         # step 5) do speed adjustment on raw data
         adjusted_matrix = speed_adjusted_matrix_timebased(countrate_matrix, t_from_even_y, const)
 
         # step 6) create and save images of current frame:   # note: below two functions are needed to save figs and create gifs
-        #draw_image_heatmap(matrix=np.array(non_speed_matrix), title=f"Original image - {image_nr}/{const['nr_frames']}\nScan frame rate: {const['scan_fps']} fps", fig_title=f"Non-speed adjusted - sine freq: {const['freq']} Hz", save_fig=True, save_loc=const["save_location"]+"/Original_Frames", save_name=f"frame {image_nr}")
-        fig = draw_image_heatmap(matrix=np.array(adjusted_matrix),  title=f"Speed adjusted - {image_nr}/{const['nr_frames']}\nScan frame rate: {const['scan_fps']} fps", fig_title=f"Speed adjusted - sine freq: {const['freq']} Hz",     save_fig=True, save_loc=const["save_location"]+"/Adjusted_Frames",    save_name=f"frame {image_nr}")
+        fig_raw = draw_image_heatmap(matrix=np.array(non_speed_matrix), title=f"Original image - {image_nr}/{const['nr_frames']}\nScan frame rate: {const['scan_fps']} fps", fig_title=f"Non-speed adjusted - sine freq: {const['freq']} Hz", save_fig=True, save_loc=const["save_location"]+"/Original_Frames", save_name=f"frame {image_nr}", figsize=(3,3))
+        fig_spe = draw_image_heatmap(matrix=np.array(adjusted_matrix),  title=f"Speed adjusted - {image_nr}/{const['nr_frames']}\nScan frame rate: {const['scan_fps']} fps", fig_title=f"Speed adjusted - sine freq: {const['freq']} Hz",     save_fig=True, save_loc=const["save_location"]+"/Adjusted_Frames",    save_name=f"frame {image_nr}", figsize=(6,6))
 
-        all_figs.append(fig)  # for GUI
+        #plt.show()
+        all_figs.append([fig_raw, fig_spe])  # for GUI
 
     print("Complete with ETA.")
 
@@ -210,15 +216,23 @@ def bap_eta_segmented_analysis_multiframe(const):
         plt.figure(f"Histo for frame {h+1}")
         plt.plot(all_histo[h])
         plt.title(f"Histo for frame {h+1}")
+        #plt.ylim(0, ceiling)
+
+    plt.figure(f"Histos for frame {0}")
+    for h in range(len(countrate_matrix)):
+        #plt.plot(all_histo[h])
+        plt.plot(countrate_matrix[h])
+        plt.title(f"Histo for frame {h+1}")
         #plt.ylim(0, ceiling)"""
 
     # step 7) create and save gifs with saved frames
     #for i in range(len(const['gif_rates'])):
-    i = 1
+    #i = 1
     #add_to_gif(location=const["save_location"], folder="/Original_Frames", const=const, gif_frame_rate=const['gif_rates'][i], note=const['gif_notes'][i], overlay=True)
     #add_to_gif(location=const["save_location"], folder="/Adjusted_Frames", const=const, gif_frame_rate=const['gif_rates'][i], note=const['gif_notes'][i], overlay=True)
 
     #plt.show()
+
     return all_figs
 
 
@@ -327,14 +341,14 @@ def bap_get_row_from_eta(eta_engine, pos, context, ch_sel, timetag_file, run_fla
 
 
 # ----------- DRAWING AND SAVING IMAGES --------------
-def draw_image_heatmap(matrix, title="", fig_title="", cmap='hot', save_fig=False, save_loc="misc", save_name="misc"):
+def draw_image_heatmap(matrix, title="", fig_title="", cmap='hot', save_fig=False, save_loc="misc", save_name="misc", figsize=(5,5)):
     """Generic method for any imshow() we want to do"""
     matrix = np.flip(matrix, axis=1)   # flips the image because imshow() fills in from bottom (??)
 
     #plt.figure(fig_title)
-    fig, ax = plt.subplots(1,1)
+    fig, ax = plt.subplots(1,1, figsize=figsize)
     ax.imshow(matrix, cmap=cmap)
-    #ax.set_title(title)
+    ax.set_title(title)
     ax.axis('off')
     if save_fig:
         save_image_folder = get_image_path(save_loc)
