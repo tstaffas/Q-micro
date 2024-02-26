@@ -193,26 +193,26 @@ class GUI:
 
         # ANALYSIS PARAMS:
         # self.eta_recipe = tk.StringVar(value='Swabian_multiframe_recipe_bidirectional_segments_marker4_20.eta')  # value='C:/Users/vLab/Desktop/Spectra GUI  Julia/LIDAR GUI/Recipes/3D_tof_swabian_marker_ch4.eta')
-        self.eta_recipe = tk.StringVar(
-            value='Swabian_multiframe_recipe_bidirectional_segments_marker4_21.eta')  # value='C:/Users/vLab/Desktop/Spectra GUI  Julia/LIDAR GUI/Recipes/3D_tof_swabian_marker_ch4.eta')
         self.clue = tk.StringVar(value='fr')
         self.bins = tk.IntVar(value=20000)  # bins*binssize = 1/frep [ps]
         self.ch_sel = tk.StringVar(value='h2')
+        self.eta_recipe = tk.StringVar(value='Swabian_multiframe_recipe_bidirectional_segments_marker4_21.eta')  # value='C:/Users/vLab/Desktop/Spectra GUI  Julia/LIDAR GUI/Recipes/3D_tof_swabian_marker_ch4.eta')
+        self.anal_data_file = tk.StringVar(value='K:/Microscope/Data/240116/200c_froggg_sineFreq(5.0)_numFrames(1)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(240116)_time(09h53m12s).timeres')
         self.save_folder = tk.StringVar(value='/Analysis')  # where images, gifs and analysis is saved
 
         # SCAN PARAMS:
         # self.dimX = tk.IntVar(value=100)
+        self.sweep_mode = tk.StringVar(value='linear')
         self.dimY = tk.IntVar(value=100)
         self.freq = tk.DoubleVar(value=5.0)
         self.nr_frames = tk.IntVar(value=1)
         self.ampX = tk.DoubleVar(value=0.3)  # --> step values between -0.3 and 0.3
         self.ampY = tk.DoubleVar(value=0.3)  # --> sine values between -0.3 and 0.3
-        #self.data_folder = tk.StringVar(value='Data/240116')
-        self.data_folder = tk.StringVar(value='K:/Microscope/Data/240116')
+        self.data_folder = tk.StringVar(value=f'K:/Microscope/Data/{date.today().strftime("%y%m%d")}')
+        self.data_file = tk.StringVar(value='')
+
         # K:\Microscope\Data\240116
         # self.data_file = tk.StringVar(value='stegh_sineFreq(5.0)_numFrames(1)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(240221)_time(11h00m07s)')
-        self.data_file = tk.StringVar(
-            value='200c_froggg_sineFreq(5.0)_numFrames(1)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(240116)_time(09h53m12s)')
 
         # -----------
 
@@ -358,12 +358,22 @@ class GUI:
                 self.record_mode.set(True)  # for diagnostics, we must be in record mode
             self.demo_mode.set(False)
 
+        def select_sweep_mode():
+            self.logger_box.module_logger.info(f"Chosen sweep mode: {self.sweep_mode.get()}")
+
         frm_misc = tk.Frame(tab, relief=tk.RAISED, bd=2)
 
         fig1, ax1 = init_plot(show=False)
         # ----
 
         tk.Label(frm_misc, text='Acquisition', font=('', 15)).grid(row=0, column=0, sticky="ew", padx=0, pady=0)
+
+        # ----
+        tk.Checkbutton(frm_misc, text="Linear Sweep", anchor="w", command=select_sweep_mode, variable=self.sweep_mode,
+                       onvalue='linear', offvalue='sine').grid(row=1, column=0, sticky="ew", padx=0, pady=0)
+        tk.Checkbutton(frm_misc, text="Sine Sweep", anchor="w", command=select_sweep_mode, variable=self.sweep_mode,
+                       onvalue='sine', offvalue='linear').grid(row=1, column=1, sticky="ew", padx=0, pady=0)
+        # ----
 
         file_lab_parts = []
         file_entry = []
@@ -386,14 +396,14 @@ class GUI:
         for i, label in enumerate(variables.keys()):
             file_lab_parts.append(tk.Label(frm_misc, text=label))
             file_entry.append(variables[label]['entry'])
-            self.add_to_grid(widg=[file_lab_parts[i]], rows=[i + 1], cols=[0], sticky=["ew"])
-            self.add_to_grid(widg=[file_entry[i]], rows=[i + 1], cols=[1],
+            self.add_to_grid(widg=[file_lab_parts[i]], rows=[i + 2], cols=[0], sticky=["ew"])
+            self.add_to_grid(widg=[file_entry[i]], rows=[i + 2], cols=[1],
                              sticky=["ew"])  # FIXME  # TODO: CONTINUE HERE
 
         tk.Button(frm_misc, text="filename", command=suggest_name, activeforeground='blue',
-                  highlightbackground=self.button_color).grid(row=7, column=0, sticky='ew', padx=0, pady=0)
-        tk.Button(frm_misc, text="data folder", command=open_folder, activeforeground='blue',
                   highlightbackground=self.button_color).grid(row=8, column=0, sticky='ew', padx=0, pady=0)
+        tk.Button(frm_misc, text="data folder", command=open_folder, activeforeground='blue',
+                  highlightbackground=self.button_color).grid(row=9, column=0, sticky='ew', padx=0, pady=0)
 
         # tk.Button(frm_misc, text="save to", command=open_folder, activeforeground='blue',
         #          highlightbackground=self.button_color).grid(row=8, column=0, sticky='ew', padx=0, pady=0)
@@ -403,12 +413,13 @@ class GUI:
         self.demo_mode = tk.BooleanVar(value=True)
 
         tk.Checkbutton(frm_misc, text="Record Scan ", anchor="w", command=select_record, variable=self.record_mode,
-                       onvalue=True, offvalue=False).grid(row=9, column=0, sticky="ew", padx=0, pady=0)
-        tk.Checkbutton(frm_misc, text="Diagnostics (no data file)", anchor="w", command=select_diagnostics,
-                       variable=self.diagnostics_mode, onvalue=True, offvalue=False).grid(row=9, column=1, sticky="ew",
-                                                                                          padx=0, pady=0)
-        tk.Checkbutton(frm_misc, text="Demo/Offline", anchor="w", command=select_demo, variable=self.demo_mode,
                        onvalue=True, offvalue=False).grid(row=10, column=0, sticky="ew", padx=0, pady=0)
+        tk.Checkbutton(frm_misc, text="Diagnostics (no data file)", anchor="w", command=select_diagnostics,
+                       variable=self.diagnostics_mode, onvalue=True, offvalue=False).grid(row=10, column=1, sticky="ew", padx=0, pady=0)
+        tk.Checkbutton(frm_misc, text="Demo/Offline", anchor="w", command=select_demo, variable=self.demo_mode,
+                       onvalue=True, offvalue=False).grid(row=11, column=0, sticky="ew", padx=0, pady=0)
+
+        suggest_name()
 
         return frm_misc
 
@@ -422,63 +433,19 @@ class GUI:
 
         def open_datafile():
             file = askopenfilename(filetypes=[("Timeres", "*.timeres")])
-            self.data_file.set(file)
+            self.anal_data_file.set(file)
             variables['file_name']['entry'].delete(0, tk.END)
             variables['file_name']['entry'].insert(0, file)
-
-            # TODO: ALSO CHANGE OTHER VARIABLES
-            update_variables(file)
 
         def open_folder():
             file = askdirectory()
             variables['save_folder']['entry'].delete(0, tk.END)
             variables['save_folder']['entry'].insert(0, file)
 
-        def update_variables(file):
-            # self.dimX =
-            # self.dimY =
-            # self.dimX =
-            # self.dimX =
-            # TODO: FIX REGEX LATER
+        #def press_start_analysis():
+        #    self.pb['value'] = 0
+        #    self.root.update()  # testing
 
-            rect_str = ''
-            xdim_str = ''
-            ydim_str = ''
-
-            rect_rng = []
-            xdim_rng = []
-            ydim_rng = []
-
-            for i, char in enumerate(file):
-                if char == '[':
-                    rect_rng.append(i + 1)
-                if char == ']':
-                    rect_rng.append(i - 1)
-                elif (file[i] == '_') and (file[i + 4] == 'x'):
-                    xdim_rng = [i + 1, i + 3]
-                elif (file[i] == 'x') and (file[i + 4] == '_'):
-                    ydim_rng = [i + 1, i + 3]
-
-            rect = file[rect_rng[0]:rect_rng[1] + 1]
-            xdim = file[xdim_rng[0]:xdim_rng[1] + 1]
-            ydim = file[ydim_rng[0]:ydim_rng[1] + 1]
-
-            variables['rect']['entry'].delete(0, tk.END)
-            variables['rect']['entry'].insert(0, rect)
-            variables['dimX']['entry'].delete(0, tk.END)
-            variables['dimX']['entry'].insert(0, xdim)
-            variables['dimY']['entry'].delete(0, tk.END)
-            variables['dimY']['entry'].insert(0, ydim)
-
-            variables['rect']['var'].set(rect)
-            variables['dimX']['var'].set(eval(xdim))
-            variables['dimY']['var'].set(eval(ydim))
-
-        def press_start_analysis():
-            self.pb['value'] = 0
-            self.root.update()  # testing
-
-            # NOTE: HERE WE SHOULD START ANALYSIS?
 
         frm_misc = tk.Frame(tab, relief=tk.RAISED, bd=2)
         tk.Label(frm_misc, text='Analysis', font=('', 15)).grid(row=0, column=0, sticky="news", padx=0, pady=0)
@@ -487,13 +454,15 @@ class GUI:
         file_entry = []
 
         variables = {
+            'file_name': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.anal_data_file, width=15),
+                          'var': self.save_folder},
             'eta_recipe': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.eta_recipe, width=30),
                            'var': self.eta_recipe},
             'save_folder': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.save_folder, width=15),
                             'var': self.save_folder},
-
             'bins': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.bins, width=15), 'var': self.bins},
             'ch_sel': {'entry': tk.Entry(frm_misc, bd=2, textvariable=self.ch_sel, width=15), 'var': self.ch_sel},
+
         }
 
         for i, label in enumerate(variables.keys()):
@@ -503,11 +472,13 @@ class GUI:
             self.add_to_grid(widg=[file_entry[i]], rows=[i + 1], cols=[1],
                              sticky=["ew"])  # FIXME  # TODO: CONTINUE HERE
 
-        file_buts = [tk.Button(frm_misc, text="eta recipe", command=get_recipe, activeforeground='blue',
+        file_buts = [tk.Button(frm_misc, text="datafile", command=open_datafile, activeforeground='blue',
+                               highlightbackground=self.button_color),
+                     tk.Button(frm_misc, text="eta recipe", command=get_recipe, activeforeground='blue',
                                highlightbackground=self.button_color),
                      tk.Button(frm_misc, text="save folder", command=open_folder, activeforeground='blue',
                                highlightbackground=self.button_color)]
-        self.add_to_grid(widg=file_buts, rows=[1, 2], cols=[0, 0], sticky=["ew", "ew"])
+        self.add_to_grid(widg=file_buts, rows=[1, 2, 3], cols=[0, 0, 0], sticky=["ew", "ew", "ew"])
 
         return frm_misc
 
@@ -561,6 +532,12 @@ class GUI:
                        f'time({time.strftime("%Hh%Mm%Ss", time.localtime())}).timeres'
             self.data_file.set(filename)
 
+            folder = self.data_folder.get()
+            if len(folder) > 0:
+                if folder[-1] not in ['/', '//', '\\']:
+                    folder += '/'
+            self.anal_data_file.set(folder + self.data_file.get())
+
             if not self.demo_mode.get():
                 self.logger_box.module_logger.info(f"new file name => {filename}")
                 t7.main_galvo_scan()  # try to perform scan (including prepp and connections)
@@ -589,16 +566,20 @@ class GUI:
         def press_analyze():
             # TODO NOTE WORKING HERE PLOTTING ANALYSIS
             self.logger_box.module_logger.info("Pressed analyze")
+
             all_figs = self.ETA_analysis()
 
-            # speed adjusted plot
-            plt_frame, canvas = self.pack_plot(self.plotting_frame,
-                                               all_figs[0][1])  # FIXME: or maybe after plotting histo?
+            # Note: removing previously plotted plots
+            for widget in (self.plotting_frame.winfo_children()):  # FIXME NOTE TODO: USE THIS LATER TO ACCESS BUTTONS FOR MARKING DONE
+                #print("destroyed")
+                widget.destroy()
+
+            # showing both raw and sine speed adjusted:
+            plt_frame, canvas = self.pack_plot(self.plotting_frame, all_figs[0][0])  # FIXME: or maybe after plotting histo?
             plt_frame.grid(row=1, column=1, sticky="nw", padx=0, pady=0)
-            # raw plot
-            plt_frame, canvas = self.pack_plot(self.plotting_frame,
-                                               all_figs[0][0])  # FIXME: or maybe after plotting histo?
-            plt_frame.grid(row=2, column=1, sticky="nw", padx=0, pady=0)
+
+            plt_frame, canvas = self.pack_plot(self.plotting_frame, all_figs[0][1])  # FIXME: or maybe after plotting histo?
+            plt_frame.grid(row=1, column=2, sticky="nw", padx=0, pady=0)
 
             self.logger_box.module_logger.info("Done plotting")
             self.root.update()
@@ -615,7 +596,7 @@ class GUI:
         btn_stop = tk.Button(frm_send, text="Analyze", command=press_analyze, activeforeground='blue',
                              highlightbackground=self.button_color)
         btn_start.grid(row=0, column=0, sticky="nsew", padx=0, pady=1.5)
-        # self.pb.grid(row=0, column=1, sticky="nsew")
+        self.pb.grid(row=0, column=1, sticky="nsew")
         btn_stop.grid(row=0, column=2, sticky="nsew", padx=0, pady=1.5)
 
         tk.Button(frm_send, text="Close stream", command=press_close_stream, activeforeground='blue',
@@ -655,11 +636,14 @@ class GUI:
 
             binsize = int(round((1 / (self.freq.get() * 1e-12)) / self.bins.get()))
 
-            folder = self.data_folder.get()
-            if len(folder) > 0:
-                if folder[-1] not in ['/', '//', '\\']:
-                    folder += '/'
-            file_path = folder + self.data_file.get()
+            #folder = self.data_folder.get()
+            #if len(folder) > 0:
+            #    if folder[-1] not in ['/', '//', '\\']:
+            #        folder += '/'
+            file_path = self.anal_data_file.get()  #+ folder
+            if file_path == '':
+                self.logger_box.module_logger.info("Error: please select a datafile to count!")
+                return
             if '.timeres' not in file_path:
                 file_path += '.timeres'
 
@@ -721,6 +705,7 @@ class GUI:
             canvas.get_tk_widget().pack()
 
         return plt_frame, canvas
+
 
     def close(self, printlog):
         time.sleep(0.3)
@@ -852,11 +837,11 @@ class GUI:
         # timetag_file = 'finalsaba_sineFreq(5.0)_numFrames(1).timeres'
         # timetag_file = 'froggg_sineFreq(5.0)_numFrames(1).timeres'
         # print("timetag file:", timetag_file)
-        folder = self.data_folder.get()
-        if len(folder) > 0:
-            if folder[-1] not in ['/', '//', '\\']:
-                folder += '/'
-        timetag_file = folder + self.data_file.get()
+        #folder = self.data_folder.get()
+        #if len(folder) > 0:
+        #    if folder[-1] not in ['/', '//', '\\']:
+        #        folder += '/'
+        timetag_file = self.anal_data_file.get()  # + folder
         if '.timeres' not in timetag_file:
             timetag_file += '.timeres'
 
@@ -871,6 +856,9 @@ class GUI:
         dimX = self.dimY.get()  # how many (stepwise) steps we take in scan
         bins = self.bins.get()  # how many bins/containers we get back for one period   #20000 is good --> 10k per row
         ch_sel = self.ch_sel.get()
+        sweep_mode = self.sweep_mode.get()
+        folder = self.data_folder.get()
+
         print("using channel", ch_sel)
 
         # Playback Frame Rates for GIFs:
@@ -884,12 +872,10 @@ class GUI:
                     ampY / ampX)))  # How many pixels we want to use TODO: Get new data (where ampX != ampY) and test this relationship!
         freq_ps = freq * 1e-12  # frequency scaled to unit picoseconds (ps)
         period_ps = 1 / freq_ps  # period in unit picoseconds (ps)
-        binsize = int(round(
-            period_ps / bins))  # how much time (in ps) each histogram bin is integrated over (=width of bins). Note that the current recipe returns "bins" values per period.
+        binsize = int(round(period_ps / bins))  # how much time (in ps) each histogram bin is integrated over (=width of bins). Note that the current recipe returns "bins" values per period.
 
         self.logger_box.module_logger.info(f"bins = {bins},  binsize = {binsize}")  # *{10e-12} picoseconds")
-        self.logger_box.module_logger.info(
-            f"single frame scan time: {dimX / freq} sec,  scan frame rate: {scan_fps} fps")
+        self.logger_box.module_logger.info(f"single frame scan time: {dimX / freq} sec,  scan frame rate: {scan_fps} fps")
 
         # NOTE: Below is a dictionary with all the parameters defined above. This way we can sent a dict with full access instead of individual arguments
         const = {
@@ -911,6 +897,7 @@ class GUI:
             "scan_fps": scan_fps,
             "gif_rates": gif_rates,
             "gif_notes": gif_notes,
+            "sweep_mode" : sweep_mode,
         }
         print("Using recipe:", eta_recipe)
         # --------- GET DATA AND HISTOGRAMS------------
@@ -927,16 +914,14 @@ class GUI:
         # --- PROVIDE WHICH MAIN FOLDER WE SAVE ANY ANALYSIS TO (ex. images, raw data files, etc.), DEPENDING ON WHICH ETA FILE
         st = timetag_file.find("date(")
         fin = timetag_file.find(".timeres")
-        const[
-            "save_location"] = f"Analysis/({str(freq)}Hz)_{timetag_file[st:fin]}"  # This is the folder name for the folder where data, images, and anything else saved from analysis will be saved
+        const["save_location"] = f"Analysis/({str(freq)}Hz)_{timetag_file[st:fin]}"  # This is the folder name for the folder where data, images, and anything else saved from analysis will be saved
         #       FOR EXAMPLE: const["save_location"] = Analysis/(100Hz)_date(230717)_time(14h02m31s)
 
         # --- EXTRACT AND ANALYZE DATA ---
         # all_figs1 = Q.eta_segmented_analysis_multiframe(const=const)   # note: all params we need are sent in with a dictionary. makes code cleaner
 
         # testing prev version
-        all_figs2 = Q.bap_eta_segmented_analysis_multiframe(
-            const=const)  # note: all params we need are sent in with a dictionary. makes code cleaner
+        all_figs2 = Q.bap_eta_segmented_analysis_multiframe(const=const)  # note: all params we need are sent in with a dictionary. makes code cleaner
 
         return all_figs2
 
@@ -1047,11 +1032,13 @@ class T7:
 
     # MAIN FUNCTION THAT PREPARES AND PERFORMS SCAN:
     def main_galvo_scan(self):
+        self.abort_scan = False
+
         gui.logger_box.module_logger.info("Getting scan parameters and generating scan sine and step values.")
         self.get_scan_parameters()
         self.get_step_values()
-        self.get_sine_values()
-        self.abort_scan = True # TODO: REMOVE
+        self.get_sine_values(sweep_mode=gui.sweep_mode.get())
+        self.abort_scan = True  # TODO: REMOVE
 
         gui.logger_box.module_logger.info("Doing safety check on scan parameters.")
         SafetyTests().check_voltages()  # MOST IMPORTANT SO WE DON'T DAMAGE DEVICE WITH TOO HIGH VOLTAGE
@@ -1065,10 +1052,8 @@ class T7:
                 # err = ljm.eStreamStop(t7.handle)   #
 
             gui.logger_box.module_logger.info("Populating command list")
-            self.multi_populate_scan_cmd_list_burst()
-            # self.multi_populate_scan_lists()  #### NEW NAME???
+            self.multi_populate_scan_cmd_list_burst()    # self.multi_populate_scan_lists()  #### NEW NAME???
 
-            # self.populate_buffer_stream()
             if not self.offline:
                 self.fill_buffer_stream()  # NOTE ONLINE ONLY
 
@@ -1176,7 +1161,7 @@ class T7:
         self.b_nrAddresses = 1
 
         # -----------------------
-        self.extra_delay = 0.001  # extra delay (seconds) to ensure that sine curve has reached a minimum
+        self.extra_delay = 0.001  # extra delay (seconds) to ensure that sine curve has reached a minimum/end
         self.step_delay = self.sine_period + self.extra_delay  # time between every X command. Should be half a period (i.e. time for one up sweep)
 
         # calculates constants we need to do wait_us_blocking for any frequency. NOTE!!! Can be moved to get_params func
@@ -1204,34 +1189,31 @@ class T7:
             self.step_values.append(round(k + self.step_offset, 10))
             k += step_size
 
-    def get_sine_values(self):  # sine waveform
+    def get_sine_values(self, sweep_mode='sine'):  # sine waveform
         # Change compared to before: now we don't ensure exactly symmetrical sine values for up/down sweeps.
+        self.sine_times = list(np.arange(start=0, stop=self.sine_dim, step=1) * self.sine_delay)  # for plotting if desired
 
-        sweep_mode = 'sine'
-
-        self.sine_times = list(np.arange(start=0, stop=self.sine_dim, step=1) * self.sine_delay)
-
+        gui.logger_box.module_logger.info(f"Using sweep mode '{sweep_mode}' for buffer values")
 
         if sweep_mode == 'sine':
             sine_fast = self.sine_amp * np.sin((2 * np.pi * self.sine_freq * np.array(self.sine_times)) - self.sine_phase) + self.sine_offset
             self.sine_values = list(np.around(sine_fast, decimals=10))
 
-            print(self.sine_values)
-            #elif sweep_mode == 'linear':
-
-            # TODO: maybe best to combine the list with the reversed list?
-            lin_values = list(np.around(np.linspace(start=-self.sine_amp, stop=self.sine_amp, num=int(self.sine_dim / 2), endpoint=True) + self.sine_offset, decimals=10)) \
-                         + \
-                         list(np.around(np.linspace(start=self.sine_amp, stop=-self.sine_amp, num=int(self.sine_dim / 2), endpoint=True) + self.sine_offset, decimals=10))
-
-            print(lin_values)
-            #plt.plot(self.sine_times, lin_values)
-            #plt.plot(self.sine_times, self.sine_values)
-
-            if self.sine_dim != len(lin_values):
-                print("Error: length of sweep list must be an even amount")
+        elif sweep_mode == 'linear':
+            half_lin_values = np.around(np.linspace(start=-self.sine_amp, stop=self.sine_amp, num=int(self.sine_dim / 2), endpoint=True) + self.sine_offset, decimals=10)
+            self.sine_values = list(half_lin_values) + list(np.flip(half_lin_values))
+            if self.sine_dim != len(self.sine_values):
+                gui.logger_box.module_logger.info("Error: length of sweep list must be an even amount")
                 self.abort_scan = True
 
+        else:
+            print("Unknown sweep mode")
+            gui.logger_box.module_logger.info(f"ERROR: Unknown sweep mode for buffer list")
+            self.abort_scan = True
+            return
+
+        #plt.plot(self.sine_times, self.sine_values)
+        #plt.plot(self.sine_times, sine_values)   # note: to see this we need to run both sweep modes above and change the names to not be equal
         #plt.show()
 
     # Step 4) Connect to LabJack device
@@ -1538,8 +1520,7 @@ class T7:
         # https://labjack.com/pages/support?doc=/datasheets/t-series-datasheet/132-dio-extended-features-t-series-datasheet/
         # gui.logger_box.module_logger.info("Configuring trigger")
 
-        ljm.eWriteName(self.handle, "STREAM_TRIGGER_INDEX",
-                       0)  # disabling triggered stream, also clears previous settings i think
+        ljm.eWriteName(self.handle, "STREAM_TRIGGER_INDEX", 0)  # disabling triggered stream, also clears previous settings i think
         ljm.eWriteName(self.handle, "STREAM_CLOCK_SOURCE", 0)  # Enabling internally-clocked stream.
         ljm.eWriteName(self.handle, "STREAM_RESOLUTION_INDEX", 0)
         ljm.eWriteName(self.handle, "STREAM_SETTLING_US", 0)
@@ -1559,8 +1540,7 @@ class T7:
         # Choose which extended feature to set
         ljm.eWriteName(self.handle, "%s_EF_INDEX" % self.tr_sink_addr, 12)
         # Set reset options, see bitmask options
-        ljm.eWriteName(self.handle, "%s_EF_CONFIG_A" % self.tr_sink_addr,
-                       0)  # 0: Falling edges , 1: Rising edges (<-i think, depends on bitmask)
+        ljm.eWriteName(self.handle, "%s_EF_CONFIG_A" % self.tr_sink_addr, 0)  # 0: Falling edges , 1: Rising edges (<-i think, depends on bitmask)
         # Turn on the DIO-EF  --> Enable trigger once configs are done
         ljm.eWriteName(self.handle, "%s_EF_ENABLE" % self.tr_sink_addr, 1)
 
@@ -1572,7 +1552,7 @@ class T7:
         if abs(self.step_values_up[0]) < 5 and abs(self.sine_values[0]) < 5:
             ljm.eWriteNames(self.handle, 2, [self.step_addr, self.sine_addr],
                             [self.step_values_up[0], self.sine_values[0]])
-            # gui.logger_box.module_logger.info("Setting start positions for Step (up) and Sine values:", self.step_values_up[0], ", ", self.sine_values[0])
+            gui.logger_box.module_logger.info("Setting start positions for Step (up) and Sine values:", self.step_values_up[0], ", ", self.sine_values[0])
         else:
             self.abort_scan = True
 
@@ -1604,13 +1584,20 @@ class T7:
 
             gui.logger_box.module_logger.info("Starting Scan")
             gui.root.update()
+            # -----temp----
+            print("-----")
+            for i, _ in enumerate(self.aAddressesUp):
+                print(self.aAddressesUp[i], "-->", self.aValuesUp[i])
+            print("-----")
+
+            # ----end temp----
 
             start_time = time.time()
-
+            #proc_step =
             for i in range(self.num_frames):  # scan repeats for given number of frames
-                # gui.pb['value'] += proc_step
-                # gui.root.update()  # testing    # TODO NOTE FIXME, CHECK IF THIS AFFECTS ANYTHING TIME-WISE!!
-                # gui.logger_box.module_logger.info(f"Frame", i, "done")
+                #gui.pb['value'] += proc_step
+                #gui.root.update()  # testing    # TODO NOTE FIXME, CHECK IF THIS AFFECTS ANYTHING TIME-WISE!!
+                #gui.logger_box.module_logger.info(f"Frame", i, "done")
 
                 if i % 2 == 0:  # if i is even
                     rc1 = ljm.eWriteNames(self.handle, len(self.aAddressesUp), self.aAddressesUp,

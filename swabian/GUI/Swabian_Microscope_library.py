@@ -204,11 +204,18 @@ def bap_eta_segmented_analysis_multiframe(const):
         adjusted_matrix = speed_adjusted_matrix_timebased(countrate_matrix, t_from_even_y, const)
 
         # step 6) create and save images of current frame:   # note: below two functions are needed to save figs and create gifs
-        fig_raw = draw_image_heatmap(matrix=np.array(non_speed_matrix), title=f"Original image - {image_nr}/{const['nr_frames']}\nScan frame rate: {const['scan_fps']} fps", fig_title=f"Non-speed adjusted - sine freq: {const['freq']} Hz", save_fig=True, save_loc=const["save_location"]+"/Original_Frames", save_name=f"frame {image_nr}", figsize=(3,3))
-        fig_spe = draw_image_heatmap(matrix=np.array(adjusted_matrix),  title=f"Speed adjusted - {image_nr}/{const['nr_frames']}\nScan frame rate: {const['scan_fps']} fps", fig_title=f"Speed adjusted - sine freq: {const['freq']} Hz",     save_fig=True, save_loc=const["save_location"]+"/Adjusted_Frames",    save_name=f"frame {image_nr}", figsize=(6,6))
+        fig_raw = draw_image_heatmap(matrix=np.array(non_speed_matrix), title=f"Raw/linear plt - {image_nr}/{const['nr_frames']}\nScan frame rate: {const['scan_fps']} fps",
+                                     fig_title=f"Non-speed adjusted - sine freq: {const['freq']} Hz", save_fig=True,
+                                     save_loc=const["save_location"]+"/Original_Frames", save_name=f"frame {image_nr}", figsize=(4,4))
+        fig_spe = draw_image_heatmap(matrix=np.array(adjusted_matrix),  title=f"Sine adjusted  - {image_nr}/{const['nr_frames']}\nScan frame rate: {const['scan_fps']} fps",
+                                     fig_title=f"Speed adjusted - sine freq: {const['freq']} Hz",     save_fig=True,
+                                     save_loc=const["save_location"]+"/Adjusted_Frames",    save_name=f"frame {image_nr}", figsize=(4,4))
 
         #plt.show()
-        all_figs.append([fig_raw, fig_spe])  # for GUI
+        if const["sweep_mode"] == "linear":
+            all_figs.append([fig_raw, fig_spe])  # for GUI
+        else:
+            all_figs.append([fig_spe, fig_raw])  # for GUI
 
     print("Complete with ETA.")
 
