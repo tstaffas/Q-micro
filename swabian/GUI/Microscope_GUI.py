@@ -196,7 +196,7 @@ class GUI:
         self.clue = tk.StringVar(value='fr')
         self.bins = tk.IntVar(value=20000)  # bins*binssize = 1/frep [ps]
         self.ch_sel = tk.StringVar(value='h2')
-        self.eta_recipe = tk.StringVar(value='Swabian_multiframe_recipe_bidirectional_segments_marker4_21.eta')  # value='C:/Users/vLab/Desktop/Spectra GUI  Julia/LIDAR GUI/Recipes/3D_tof_swabian_marker_ch4.eta')
+        self.eta_recipe = tk.StringVar(value='Swabian_multiframe_recipe_bidirectional_segments_marker4_28.eta')  # value='C:/Users/vLab/Desktop/Spectra GUI  Julia/LIDAR GUI/Recipes/3D_tof_swabian_marker_ch4.eta')
         self.anal_data_file = tk.StringVar(value='K:/Microscope/Data/240116/200c_froggg_sineFreq(5.0)_numFrames(1)_sineAmp(0.3)_stepAmp(0.3)_stepDim(100)_date(240116)_time(09h53m12s).timeres')
         self.save_folder = tk.StringVar(value='/Analysis')  # where images, gifs and analysis is saved
 
