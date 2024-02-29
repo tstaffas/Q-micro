@@ -219,10 +219,10 @@ def bap_eta_segmented_analysis_multiframe(const):
 
     print("Complete with ETA.")
 
-    for h in range(len(all_histo)):
-        plt.figure(f"Histo for frame {h+1}")
-        plt.plot(all_histo[h])
-        plt.title(f"Histo for frame {h+1}")
+    #for h in range(len(all_histo)):
+    #    plt.figure(f"Histo for frame {h+1}")
+    #    plt.plot(all_histo[h])
+    #    plt.title(f"Histo for frame {h+1}")
 
     plt.figure(f"Histos for frame {0}")
     for h in range(len(countrate_matrix)):
@@ -235,7 +235,7 @@ def bap_eta_segmented_analysis_multiframe(const):
     #add_to_gif(location=const["save_location"], folder="/Original_Frames", const=const, gif_frame_rate=const['gif_rates'][i], note=const['gif_notes'][i], overlay=True)
     #add_to_gif(location=const["save_location"], folder="/Adjusted_Frames", const=const, gif_frame_rate=const['gif_rates'][i], note=const['gif_notes'][i], overlay=True)
 
-    plt.show()
+    #plt.show()
 
     return all_figs
 
